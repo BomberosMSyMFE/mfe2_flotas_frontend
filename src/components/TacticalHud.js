@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { requestPushPermission, syncPushTokenToBackend } from '../services/firebaseMessaging';
+import { getFlotasApiBase } from '../services/flotasApi';
 
 export default function TacticalHud({
   unidades = [],
@@ -100,8 +101,7 @@ export default function TacticalHud({
         await syncPushTokenToBackend(camionActivoId, savedToken);
       }
 
-      const isHttps = window.location.protocol === 'https:';
-      const baseUrl = isHttps ? '/api/v1/flotas' : 'http://34.28.212.45:8082/api/v1/flotas';
+      const baseUrl = getFlotasApiBase();
       const res = await fetch(`${baseUrl}/despacho-notificar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

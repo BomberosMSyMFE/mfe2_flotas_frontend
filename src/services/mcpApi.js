@@ -67,17 +67,26 @@ function getMcpBaseUrl() {
     if (window.MCP_BASE_URL) return window.MCP_BASE_URL;
     if (window.__MCP_BASE_URL__) return window.__MCP_BASE_URL__;
     if (typeof globalThis !== 'undefined' && globalThis.MCP_BASE_URL) return globalThis.MCP_BASE_URL;
-    const isHttps = window.location.protocol === 'https:';
     const host = window.location.hostname;
+    const isCapacitorApp = typeof window.Capacitor !== 'undefined' || window.location.protocol === 'capacitor:' || (host === 'localhost' && window.location.port === '');
+    if (isCapacitorApp) {
+      return 'https://34.28.212.45.sslip.io/api/v1/mcp';
+    }
+    const isHttps = window.location.protocol === 'https:';
     return isHttps ? `https://${host}/api/v1/mcp` : `http://${host}:8005/api/v1/mcp`;
   }
-  return 'http://localhost:8005/api/v1/mcp';
+  return 'https://34.28.212.45.sslip.io/api/v1/mcp';
 }
 
 export async function fetchHotspotsDemo() {
   try {
-    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const isCapacitorApp = typeof window !== 'undefined' && (typeof window.Capacitor !== 'undefined' || window.location.protocol === 'capacitor:' || (host === 'localhost' && window.location.port === ''));
+    if (isCapacitorApp) {
+      const res = await fetch('https://34.28.212.45.sslip.io/api/v1/ml/hotspots/demo', { signal: AbortSignal.timeout(2000) });
+      if (res.ok) return await res.json();
+    }
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
     const mcpUrl = isHttps ? `https://${host}/api/v1` : `http://${host}:8005/api/v1`;
     const res = await fetch(`${mcpUrl}/ml/hotspots/demo`, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);

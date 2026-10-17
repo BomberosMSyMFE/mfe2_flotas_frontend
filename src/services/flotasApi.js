@@ -5,6 +5,11 @@ export const getFlotasApiBase = () => {
   }
   if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
+    // Si estamos en un APK móvil Capacitor (origen local 'localhost' o protocolo 'capacitor:')
+    const isCapacitorApp = typeof window.Capacitor !== 'undefined' || window.location.protocol === 'capacitor:' || (host === 'localhost' && window.location.port === '');
+    if (isCapacitorApp) {
+      return 'https://34.28.212.45.sslip.io/api/v1/flotas';
+    }
     if (host === 'localhost' || host === '127.0.0.1') {
       return 'http://localhost:8080/api/v1/flotas';
     }
@@ -18,7 +23,7 @@ export const getFlotasApiBase = () => {
     // Producción en GCP VM
     return 'http://34.28.212.45:8082/api/v1/flotas';
   }
-  return 'http://34.28.212.45:8082/api/v1/flotas';
+  return 'https://34.28.212.45.sslip.io/api/v1/flotas';
 };
 
 export async function fetchUnidadesActivas() {

@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getFlotasApiBase } from './flotasApi';
 
 const firebaseConfig = {
   apiKey: "AIzaSyARjygnKvJvJDtkRgmiWlEw1j9C3KTix38",
@@ -37,7 +38,7 @@ export async function requestPushPermission(unidadId = 'B-01') {
 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    throw new Error('Permiso de notificaciones denegado.');
+    throw new Error('Permiso de notificaciones denegado en el navegador/dispositivo.');
   }
 
   initFirebase();
@@ -46,8 +47,17 @@ export async function requestPushPermission(unidadId = 'B-01') {
   }
 
   // Registrar explícitamente el service worker de Firebase
-  const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
-  await navigator.serviceWorker.ready;
+  let registration = null;
+  try {
+    registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+  } catch (err) {
+    console.warn('Fallo registrando /firebase-messaging-sw.js:', err);
+    if (typeof window !== 'undefined' && window.location.hostname.includes('duckdns.org')) {
+      throw new Error('En el enlace DuckDNS el Service Worker no está instalado en el servidor raíz. Para activar y recibir notificaciones push en segundo plano, abre la app directa en https://34.28.212.45.sslip.io o en el APK instalado.');
+    }
+    throw err;
+  }
 
   const currentToken = await getToken(messaging, {
     vapidKey: VAPID_KEY,
@@ -70,8 +80,7 @@ export async function syncPushTokenToBackend(unidadId = 'B-04', explicitToken = 
   if (!token) return false;
 
   try {
-    const isHttps = window.location.protocol === 'https:';
-    const baseUrl = isHttps ? '/api/v1/flotas' : 'http://34.28.212.45:8082/api/v1/flotas';
+    const baseUrl = getFlotasApiBase();
     const res = await fetch(`${baseUrl}/push-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
