@@ -610,20 +610,23 @@ export default function TacticalHud({
                   async () => {
                     if (onCompensarSaga) await onCompensarSaga(camionActivoId);
                     try {
-                      window.dispatchEvent(
-                        new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', {
-                          detail: {
-                            incidenteId: incidenteActivo?.incidenteId,
-                            nuevoEstado: 'EXTINGUIDO',
-                            camionId: camionActivoId,
-                            timestamp: new Date().toLocaleTimeString()
-                          },
-                          bubbles: true
-                        })
-                      );
+                      const targetIncId = incidenteActivo?.incidenteId || incidenteActivo?.id || 'INC-ACTIVO';
+                      const payloadExtinguido = {
+                        incidenteId: targetIncId,
+                        id: targetIncId,
+                        nuevoEstado: 'EXTINGUIDO',
+                        estado: 'EXTINGUIDO',
+                        estadoAlternativo: 'FINALIZADO',
+                        camionId: camionActivoId,
+                        timestamp: new Date().toLocaleTimeString()
+                      };
+                      window.dispatchEvent(new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', { detail: payloadExtinguido, bubbles: true }));
+                      window.dispatchEvent(new CustomEvent('BOMBEROS:INCIDENTE_FINALIZADO', { detail: payloadExtinguido, bubbles: true }));
+                      window.dispatchEvent(new CustomEvent('BOMBEROS:INCIDENTE_EXTINGUIDO', { detail: payloadExtinguido, bubbles: true }));
+                      window.dispatchEvent(new CustomEvent('INCIDENTE_FINALIZADO', { detail: payloadExtinguido, bubbles: true }));
                       window.dispatchEvent(
                         new CustomEvent('BOMBEROS:UNIDAD_LIBERADA', {
-                          detail: { camionId: camionActivoId, nuevoEstado: 'DISPONIBLE' },
+                          detail: { camionId: camionActivoId, nuevoEstado: 'DISPONIBLE', incidenteId: targetIncId, id: targetIncId },
                           bubbles: true
                         })
                       );

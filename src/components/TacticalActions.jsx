@@ -122,36 +122,44 @@ export default function TacticalActions({
 
     // Emitir eventos por bus para sincronía entre Microfrontends (Host Nataly, Mapa y Cabina)
     try {
+      const targetIncId = incidenteActivo?.incidenteId || incidenteActivo?.id || 'INC-ACTIVO';
+
       window.dispatchEvent(
         new CustomEvent('BOMBEROS:ESTADO_CAMION_CAMBIADO', {
-          detail: { camionId, nuevoEstado: state.id, timestamp },
+          detail: { camionId, nuevoEstado: state.id, incidenteId: targetIncId, id: targetIncId, timestamp },
           bubbles: true
         })
       );
 
       if (state.id === 'FUEGO_CONTROLADO') {
-        window.dispatchEvent(
-          new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', {
-            detail: { nuevoEstado: 'CONTROLADO', camionId, timestamp },
-            bubbles: true
-          })
-        );
-        window.dispatchEvent(
-          new CustomEvent('BOMBEROS:INCIDENTE_CONTROLADO', {
-            detail: { estado: 'CONTROLADO', camionId, timestamp },
-            bubbles: true
-          })
-        );
+        const payloadControlado = {
+          incidenteId: targetIncId,
+          id: targetIncId,
+          nuevoEstado: 'CONTROLADO',
+          estado: 'CONTROLADO',
+          camionId,
+          timestamp
+        };
+        window.dispatchEvent(new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', { detail: payloadControlado, bubbles: true }));
+        window.dispatchEvent(new CustomEvent('BOMBEROS:INCIDENTE_CONTROLADO', { detail: payloadControlado, bubbles: true }));
+        window.dispatchEvent(new CustomEvent('INCIDENTE_CONTROLADO', { detail: payloadControlado, bubbles: true }));
       } else if (state.id === 'DISPONIBLE') {
-        window.dispatchEvent(
-          new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', {
-            detail: { nuevoEstado: 'EXTINGUIDO', camionId, timestamp },
-            bubbles: true
-          })
-        );
+        const payloadExtinguido = {
+          incidenteId: targetIncId,
+          id: targetIncId,
+          nuevoEstado: 'EXTINGUIDO',
+          estado: 'EXTINGUIDO',
+          estadoAlternativo: 'FINALIZADO',
+          camionId,
+          timestamp
+        };
+        window.dispatchEvent(new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', { detail: payloadExtinguido, bubbles: true }));
+        window.dispatchEvent(new CustomEvent('BOMBEROS:INCIDENTE_FINALIZADO', { detail: payloadExtinguido, bubbles: true }));
+        window.dispatchEvent(new CustomEvent('BOMBEROS:INCIDENTE_EXTINGUIDO', { detail: payloadExtinguido, bubbles: true }));
+        window.dispatchEvent(new CustomEvent('INCIDENTE_FINALIZADO', { detail: payloadExtinguido, bubbles: true }));
         window.dispatchEvent(
           new CustomEvent('BOMBEROS:UNIDAD_LIBERADA', {
-            detail: { camionId, nuevoEstado: 'DISPONIBLE', timestamp },
+            detail: { camionId, nuevoEstado: 'DISPONIBLE', incidenteId: targetIncId, id: targetIncId, timestamp },
             bubbles: true
           })
         );

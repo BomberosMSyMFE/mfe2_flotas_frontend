@@ -125,6 +125,11 @@ export default function App() {
   const [evidences, setEvidences] = useState([]);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
+  // Rastreo GPS de hardware en tiempo real (Sensor del teléfono/tablet)
+  const [isGpsActive, setIsGpsActive] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState(null);
+  const gpsWatchRef = useRef(null);
+
   // Catálogo de incidentes tácticos activos y siniestro en foco
   const [incidentesLista, setIncidentesLista] = useState(INCIDENTES_SANTA_CRUZ);
   const [incidenteActivo, setIncidenteActivo] = useState(INCIDENTES_SANTA_CRUZ[0]);
@@ -560,6 +565,98 @@ export default function App() {
 
     await cargarDatos();
   };
+
+  // Alternar rastreo GPS real con la antena del dispositivo móvil
+  const toggleGpsTracking = () => {
+    if (!isGpsActive) {
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        alert('Este dispositivo o navegador no cuenta con sensor de geolocalización GPS.');
+        return;
+      }
+      setIsGpsActive(true);
+    } else {
+      setIsGpsActive(false);
+      setGpsStatus(null);
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+    }
+  };
+
+  // Sensor GPS activo en tiempo real: lee el hardware del teléfono y transmite telemetría
+  useEffect(() => {
+    if (!isGpsActive) {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+      return;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+
+    let ultimoEnvio = 0;
+
+    gpsWatchRef.current = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const { latitude, longitude, accuracy, speed } = pos.coords;
+        const velKmH = speed ? Math.round(speed * 3.6) : 0;
+        const ahora = Date.now();
+
+        setGpsStatus({
+          lat: latitude,
+          lon: longitude,
+          accuracy: Math.round(accuracy),
+          speed: velKmH,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+
+        // Transmitir telemetría al backend periódicamente
+        if (ahora - ultimoEnvio > 2500 && camionSeleccionado) {
+          ultimoEnvio = ahora;
+          try {
+            await registrarTelemetria(
+              camionSeleccionado.id,
+              latitude,
+              longitude,
+              camionSeleccionado.litrosAguaActual || 4000,
+              camionSeleccionado.combustiblePorcentaje || 88,
+              velKmH > 5 ? 'EN_TRANSITO' : 'EN_ESCENA',
+              velKmH
+            );
+
+            // Reflejar inmediatamente la nueva ubicación del camión en el mapa local
+            setUnidades(prev => prev.map(u => {
+              if (u.id === camionSeleccionado.id) {
+                return { ...u, latitud: latitude, longitud: longitude, velocidadKmH: velKmH };
+              }
+              return u;
+            }));
+            setCamionSeleccionado(prev => prev ? { ...prev, latitud: latitude, longitud: longitude } : prev);
+          } catch (err) {
+            console.warn('[GPS Hardware] Error transmitiendo coordenadas:', err);
+          }
+        }
+      },
+      (err) => {
+        console.warn('[GPS Hardware] Error leyendo sensor GPS:', err.message);
+        setGpsStatus({ error: err.message });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 2000,
+      }
+    );
+
+    return () => {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+    };
+  }, [isGpsActive, camionSeleccionado]);
 
   // SAGA Reserva
   const handleReservarSaga = async (camionId) => {
@@ -1059,6 +1156,25 @@ export default function App() {
                       ▶ AVANZAR RUTA
                     </button>
 
+                    <button
+                      onClick={toggleGpsTracking}
+                      style={{
+                        flex: 1,
+                        backgroundColor: isGpsActive ? '#059669' : '#FFFFFF',
+                        border: `1px solid ${isGpsActive ? '#059669' : 'var(--border-color-dark)'}`,
+                        color: isGpsActive ? '#FFFFFF' : 'var(--color-dark)',
+                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        fontSize: isMobile ? '10px' : '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Activar sensor GPS del teléfono para transmitir posición física real"
+                    >
+                      {isGpsActive ? '🛰️ GPS: ACTIVO' : '🛰️ GPS CELULAR'}
+                    </button>
+
                     {isMobile && (
                       <button
                         onClick={() => setMobileCabinaView('CABINA')}
@@ -1078,6 +1194,36 @@ export default function App() {
                       </button>
                     )}
                   </div>
+
+                  {/* Barra de Estado del GPS Real del Celular */}
+                  {isGpsActive && (
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '4px 8px',
+                      backgroundColor: gpsStatus?.error ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                      border: `1px solid ${gpsStatus?.error ? '#EF4444' : '#10B981'}`,
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '4px',
+                    }}>
+                      {gpsStatus?.error ? (
+                        <span style={{ color: '#EF4444' }}>⚠️ GPS: {gpsStatus.error}</span>
+                      ) : (
+                        <>
+                          <span style={{ color: '#047857', fontWeight: 600 }}>
+                            ● Transmitiendo {camionSeleccionado?.id || 'B-04'}: {gpsStatus?.lat?.toFixed(5)}, {gpsStatus?.lon?.toFixed(5)}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)' }} className="font-mono">
+                            ±{gpsStatus?.accuracy || 0}m | {gpsStatus?.speed || 0} km/h
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Mapa Leaflet interactivo */}
