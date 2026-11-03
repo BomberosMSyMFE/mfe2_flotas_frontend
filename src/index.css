@@ -1,0 +1,222 @@
+/* =========================================================================
+   GUÍA MAESTRA DEL SISTEMA DE DISEÑO (DESIGN SYSTEM & UI/UX)
+   Cuerpo de Bomberos - MFE-02 Visor Cartográfico y Telemetría
+   ========================================================================= */
+
+:root {
+  /* FONDOS Y SUPERFICIES (DARK COMMAND CENTER) */
+  --bg-primary: #0A0E17;
+  --bg-surface: #111827;
+  --bg-surface-hover: #1F2937;
+  --bg-elevated: #1E293B;
+  --border-subtle: #1F2937;
+  --border-focus: #374151;
+
+  /* COLORES SEMÁNTICOS DE EMERGENCIA */
+  --color-emergency: #EF4444;
+  --color-emergency-glow: rgba(239, 68, 68, 0.35);
+  --color-emergency-dark: #991B1B;
+
+  --color-warning: #F59E0B;
+  --color-warning-glow: rgba(245, 158, 11, 0.35);
+  --color-warning-dark: #B45309;
+
+  --color-success: #10B981;
+  --color-success-glow: rgba(16, 185, 129, 0.35);
+  --color-success-dark: #065F46;
+
+  --color-tactical-blue: #3B82F6;
+  --color-tactical-blue-glow: rgba(59, 130, 246, 0.35);
+  --color-tactical-blue-dark: #1D4ED8;
+
+  --color-hydrant-cyan: #06B6D4;
+  --color-hydrant-cyan-glow: rgba(6, 182, 212, 0.35);
+
+  --color-ai-purple: #8B5CF6;
+  --color-ai-purple-glow: rgba(139, 92, 246, 0.35);
+
+  /* TEXTOS */
+  --text-main: #F9FAFB;
+  --text-muted: #9CA3AF;
+  --text-dim: #6B7280;
+  --text-inverted: #0A0E17;
+
+  /* RADIOS Y SOMBRAS */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 15px var(--color-tactical-blue-glow);
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================================================
+   ESTILOS LEAFLET DARK MODE
+   ========================================================================= */
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #0b0f19 !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Filtro Dark Táctico sobre OpenStreetMap */
+.leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(17, 24, 39, 0.95) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-focus) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(17, 24, 39, 0.95) !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* =========================================================================
+   MARCADORES PERSONALIZADOS SVG CON PULSOS
+   ========================================================================= */
+
+.custom-marker-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-marker-pin:hover {
+  transform: scale(1.15);
+}
+
+/* Halos según estado */
+.halo-disponible {
+  background: rgba(16, 185, 129, 0.2);
+  border: 2px solid var(--color-success);
+  box-shadow: 0 0 12px var(--color-success-glow);
+}
+
+.halo-transito {
+  background: rgba(59, 130, 246, 0.2);
+  border: 2px solid var(--color-tactical-blue);
+  box-shadow: 0 0 12px var(--color-tactical-blue-glow);
+  animation: pulse-blue 2s infinite;
+}
+
+.halo-escena {
+  background: rgba(245, 158, 11, 0.2);
+  border: 2px solid var(--color-warning);
+  box-shadow: 0 0 12px var(--color-warning-glow);
+  animation: pulse-orange 1.8s infinite;
+}
+
+.halo-hidrante {
+  background: rgba(6, 182, 212, 0.2);
+  border: 2px solid var(--color-hydrant-cyan);
+  box-shadow: 0 0 10px var(--color-hydrant-cyan-glow);
+}
+
+.halo-fuego {
+  background: rgba(239, 68, 68, 0.25);
+  border: 2px solid var(--color-emergency);
+  box-shadow: 0 0 16px var(--color-emergency-glow);
+  animation: emergency-pulse 1.5s infinite;
+}
+
+/* =========================================================================
+   ANIMACIONES CLAVE
+   ========================================================================= */
+
+@keyframes emergency-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes pulse-blue {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+@keyframes pulse-orange {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+/* =========================================================================
+   UTILIDADES TIPOGRÁFICAS
+   ========================================================================= */
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-emergency {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-emergency);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-tactical {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--color-tactical-blue);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-cyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--color-hydrant-cyan);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.badge-purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--color-ai-purple);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
