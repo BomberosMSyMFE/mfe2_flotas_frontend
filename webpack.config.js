@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const { ModuleFederationPlugin } = require('webpack').container;
 
 module.exports = {
@@ -52,6 +53,7 @@ module.exports = {
       exposes: {
         './VisorCartografico': './src/components/VisorCartografico',
         './FlotasMapModule': './src/App',
+        './CabinaBombero': './src/App',
       },
       shared: {
         react: {
@@ -68,7 +70,16 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      favicon: false,
+      favicon: './public/favicon.ico',
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },
+        { from: 'public/sw.js', to: 'sw.js', noErrorOnMissing: true },
+        { from: 'public/icon-192.png', to: 'icon-192.png', noErrorOnMissing: true },
+        { from: 'public/icon-512.png', to: 'icon-512.png', noErrorOnMissing: true },
+        { from: 'public/workers/aiWorker.js', to: 'workers/aiWorker.js', noErrorOnMissing: true },
+      ],
     }),
   ],
   resolve: {

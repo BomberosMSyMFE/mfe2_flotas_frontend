@@ -1,0 +1,39 @@
+{
+  "id": "/?source=pwa",
+  "name": "Bomberos SCZ - Terminal Cabina Móvil PWA",
+  "short_name": "BomberoCabina",
+  "description": "Terminal Táctica PWA Offline-First para Cabina de Camión con IA Local en Web Worker e Idempotencia UUID v7",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0E17",
+  "theme_color": "#0A0E17",
+  "categories": ["utilities", "emergency", "tactical"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

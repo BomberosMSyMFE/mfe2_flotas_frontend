@@ -1,8 +1,23 @@
-const API_BASE_URL = 'http://localhost:8080/api/v1/flotas';
+// Configuración dinámica del Endpoint de Backend de Flotas MS-02
+export const getFlotasApiBase = () => {
+  if (typeof window !== 'undefined' && window.__FLOTAS_API_URL__) {
+    return window.__FLOTAS_API_URL__;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:8080/api/v1/flotas';
+    }
+    // Producción en GCP VM o cargado externamente desde el App Shell de Nataly en AWS EC2
+    return 'http://34.28.212.45:8082/api/v1/flotas';
+  }
+  return 'http://34.28.212.45:8082/api/v1/flotas';
+};
 
 export async function fetchUnidadesActivas() {
+  const baseUrl = getFlotasApiBase();
   try {
-    const res = await fetch(`${API_BASE_URL}/unidades/activas`);
+    const res = await fetch(`${baseUrl}/unidades/activas`);
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   } catch (error) {
@@ -19,8 +34,9 @@ export async function fetchUnidadesActivas() {
 }
 
 export async function fetchRutaOptima(origenLat, origenLon, destinoLat, destinoLon) {
+  const baseUrl = getFlotasApiBase();
   try {
-    const url = `${API_BASE_URL}/ruta-optima?origenLat=${origenLat}&origenLon=${origenLon}&destinoLat=${destinoLat}&destinoLon=${destinoLon}`;
+    const url = `${baseUrl}/ruta-optima?origenLat=${origenLat}&origenLon=${origenLon}&destinoLat=${destinoLat}&destinoLon=${destinoLon}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
@@ -31,8 +47,9 @@ export async function fetchRutaOptima(origenLat, origenLon, destinoLat, destinoL
 }
 
 export async function registrarTelemetria(camionId, latitud, longitud, litrosAgua, combustible, estado, velocidad) {
+  const baseUrl = getFlotasApiBase();
   try {
-    const res = await fetch(`${API_BASE_URL}/telemetria`, {
+    const res = await fetch(`${baseUrl}/telemetria`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -51,4 +68,42 @@ export async function registrarTelemetria(camionId, latitud, longitud, litrosAgu
     console.warn('[flotasApi] Error enviando telemetría:', error.message);
     return { ack: false };
   }
+}
+
+export async function reservarCamionSaga(incidenteId, tipoFuego, latitud, longitud, litrosMinimos = 1000) {
+  const baseUrl = getFlotasApiBase();
+  const res = await fetch(`${baseUrl}/reservar-camion`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      incidenteId,
+      tipoFuego,
+      latitud,
+      longitud,
+      litrosMinimos
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.mensaje || `HTTP Error ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function liberarCamionSaga(incidenteId, camionId, motivoCompensacion) {
+  const baseUrl = getFlotasApiBase();
+  const res = await fetch(`${baseUrl}/liberar-camion`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      incidenteId,
+      camionId,
+      motivoCompensacion: motivoCompensacion || `Compensación SAGA ejecutada para camión ${camionId}`
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.mensaje || `HTTP Error ${res.status}`);
+  }
+  return await res.json();
 }
