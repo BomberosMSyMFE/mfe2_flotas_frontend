@@ -1,8 +1,7 @@
-const CACHE_NAME = 'bomberos-cabina-pwa-v3';
+const CACHE_NAME = 'bomberos-cabina-pwa-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/bundle.js',
   '/manifest.json',
   '/favicon.ico',
   '/icon-192.png',
@@ -10,13 +9,19 @@ const STATIC_ASSETS = [
   '/workers/aiWorker.js',
 ];
 
-// Install Event: Skip waiting immediately to activate newest version
+// Install Event: Pre-cache core assets and activate immediately
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Instalando nueva versión v3...');
-  self.skipWaiting();
+  console.log('[ServiceWorker] Instalando versión v4 y pre-cacheando assets...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS).catch((err) => {
+        console.warn('[ServiceWorker] Advertencia al cachear assets iniciales:', err);
+      });
+    }).then(() => self.skipWaiting())
+  );
 });
 
-// Activate Event: Clean up all outdated caches and claim clients
+// Activate Event: Clean up outdated caches and claim clients
 self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activando y purgando cachés obsoletas...');
   event.waitUntil(
@@ -33,7 +38,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event: Network-First with Cache Fallback (Evita pantallas en blanco por bundles antiguos)
+// Fetch Event: Network-First with Cache Fallback
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
     return;
@@ -41,12 +46,11 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // APIs externas (Spring Boot / FastAPI) no deben ser interceptadas por el SW
-  if (url.pathname.startsWith('/api/')) {
+  // APIs externas (Spring Boot / FastMCP) no deben ser interceptadas por el SW
+  if (url.pathname.startsWith('/api/') || url.port === '8082' || url.port === '8080' || url.port === '8005') {
     return;
   }
 
-  // Network First: Intentar red primero; si no hay red, usar caché local
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -63,7 +67,6 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Modo Offline: buscar en caché
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) {
             return cachedResponse;

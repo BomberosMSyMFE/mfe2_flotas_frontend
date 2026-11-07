@@ -26,7 +26,18 @@ const PERFILES_CABINA = {
 };
 
 export default function App() {
-  // Pestaña principal: 'CABINA' (Cabina + Mapa de Ruta) | 'MACRO' (Panorama Flotas GIS) | 'OUTBOX' (Bandeja Local)
+  // Detección reactiva de móvil (< 960px)
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 960 : false
+  );
+
+  // Sub-vista en móvil para el modo CABINA: 'MAPA' | 'CABINA'
+  const [mobileCabinaView, setMobileCabinaView] = useState('MAPA');
+
+  // Modal interactivo de ayuda de instalación PWA
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  // Pestaña principal: 'CABINA' | 'MACRO' | 'OUTBOX'
   const [activeTab, setActiveTab] = useState('CABINA');
 
   // Estado de flotas e incidentes
@@ -56,6 +67,19 @@ export default function App() {
     litrosMinimos: 8000,
   });
 
+  // Listener para redimensionamiento de pantalla (Móvil vs Escritorio)
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 960);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   // Reloj local en tiempo real
   useEffect(() => {
     const update = () => {
@@ -79,7 +103,7 @@ export default function App() {
     const handleBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      console.log('[PWA] Evento beforeinstallprompt capturado');
+      console.log('[PWA] beforeinstallprompt listo');
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
@@ -92,7 +116,7 @@ export default function App() {
       console.log('[PWA] Selección de usuario:', choice);
       setDeferredPrompt(null);
     } else {
-      alert("🚒 Instalación de Cabina Táctica de Bomberos:\n\n1. En PC: Abre el menú de Chrome (3 puntos verticales) ➔ 'Guardar y compartir' ➔ 'Instalar página como aplicación'.\n\n2. En Celular: Menú de Chrome ➔ 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
+      setShowInstallModal(true);
     }
   };
 
@@ -125,11 +149,11 @@ export default function App() {
       navigator.serviceWorker
         .register('/sw.js')
         .then((reg) => {
-          console.log('[App] Service Worker activo con scope:', reg.scope);
+          console.log('[App] Service Worker activo:', reg.scope);
           reg.update();
         })
         .catch((err) => {
-          console.warn('[App] Service Worker no registrado:', err);
+          console.warn('[App] Service Worker error:', err);
         });
     }
 
@@ -171,7 +195,7 @@ export default function App() {
     }
   }, []);
 
-  // Polling automático cada 15 segundos
+  // Polling periódico cada 15 segundos
   useEffect(() => {
     cargarDatos(false);
     const interval = setInterval(() => {
@@ -293,6 +317,19 @@ export default function App() {
     estacion: camionSeleccionado?.estacionOrigen || 'Central',
   };
 
+  // Valores de ruta formateados de forma segura
+  const distanciaKmStr = rutaCalculada
+    ? (rutaCalculada.distanciaKm !== undefined
+        ? rutaCalculada.distanciaKm.toFixed(1)
+        : (rutaCalculada.distanciaTotalMetros ? (rutaCalculada.distanciaTotalMetros / 1000).toFixed(1) : '1.6'))
+    : '1.6';
+
+  const tiempoMinStr = rutaCalculada
+    ? (rutaCalculada.tiempoMinutos !== undefined
+        ? rutaCalculada.tiempoMinutos.toFixed(0)
+        : (rutaCalculada.duracionEstimadaSegundos ? Math.max(1, Math.round(rutaCalculada.duracionEstimadaSegundos / 60)).toString() : '2'))
+    : '2';
+
   return (
     <div style={{
       width: '100vw',
@@ -305,472 +342,619 @@ export default function App() {
       fontFamily: 'var(--font-sans)',
     }}>
       {/* ============================================================== */}
-      {/* 1. BARRA SUPERIOR INSTITUCIONAL Y SELECTOR TÁCTICO DE UNIDAD  */}
+      {/* 1. BARRA SUPERIOR TOTALMENTE RESPONSIVA (MÓVIL Y ESCRITORIO)  */}
       {/* ============================================================== */}
       <header style={{
-        height: '66px',
-        backgroundColor: 'rgba(15, 23, 42, 0.96)',
+        backgroundColor: 'rgba(15, 23, 42, 0.98)',
         backdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 18px',
+        flexDirection: 'column',
         zIndex: 1100,
-        gap: '12px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
       }}>
-        {/* Identidad Institucional */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '320px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-            border: '2px solid var(--color-emergency)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '22px',
-            boxShadow: '0 0 12px rgba(239, 68, 68, 0.3)',
-          }}>
-            🚒
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.4px', margin: 0 }}>
-                CABINA TÁCTICA & VISOR CARTOGRÁFICO
-              </h1>
-              <span className="badge badge-emergency" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                MFE-02
-              </span>
-            </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Santa Cruz de la Sierra &bull; Edge AI Offline (Web Worker) &bull; IndexedDB UUID v7
-            </p>
-          </div>
-        </div>
-
-        {/* SELECTOR DE UNIDAD / CABINA (Permite al Operador o Bombero conmutar de unidad) */}
+        {/* FILA 1: IDENTIDAD, SELECTOR DE UNIDAD Y ESTADO */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: isMobile ? '8px 12px' : '10px 18px',
           gap: '8px',
-          backgroundColor: 'rgba(30, 41, 59, 0.7)',
-          padding: '4px 12px',
-          borderRadius: '8px',
-          border: '1px solid var(--border-subtle)',
         }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#93C5FD' }}>
-            🚒 CABINA / UNIDAD:
-          </span>
-          <select
-            value={camionSeleccionado?.id || 'B-04'}
-            onChange={(e) => handleCambiarUnidad(e.target.value)}
-            style={{
-              backgroundColor: '#0F172A',
-              color: '#F8FAFC',
-              border: '1px solid var(--color-tactical-blue)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              fontSize: '12px',
-              fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
-              cursor: 'pointer',
-              outline: 'none',
-            }}
-            title="El operador puede ingresar a la cabina de cualquier bombero o unidad"
-          >
-            {unidades.map((u) => (
-              <option key={u.id} value={u.id}>
-                🚒 {u.id} | {u.placa} ({u.tipo}) - {PERFILES_CABINA[u.id]?.nombre?.split('(')[0] || u.estacionOrigen}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* PESTAÑAS DE VISTA: CABINA UNIFICADA | PANORAMA GENERAL | BANDEJA OUTBOX */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button
-            onClick={() => setActiveTab('CABINA')}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: activeTab === 'CABINA' ? '1px solid var(--color-tactical-blue)' : '1px solid transparent',
-              backgroundColor: activeTab === 'CABINA' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-              color: activeTab === 'CABINA' ? '#93C5FD' : 'var(--text-muted)',
+          {/* Logo y Título */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexShrink: 1 }}>
+            <div style={{
+              width: isMobile ? '32px' : '38px',
+              height: isMobile ? '32px' : '38px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              border: '1.5px solid var(--color-emergency)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            🚒 CABINA & RUTA GIS
-          </button>
-
-          <button
-            onClick={() => setActiveTab('MACRO')}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: activeTab === 'MACRO' ? '1px solid var(--color-ai-purple)' : '1px solid transparent',
-              backgroundColor: activeTab === 'MACRO' ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-              color: activeTab === 'MACRO' ? '#C4B5FD' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            🌐 PANORAMA FLOTAS
-          </button>
-
-          <button
-            onClick={() => setActiveTab('OUTBOX')}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: activeTab === 'OUTBOX' ? '1px solid var(--color-warning)' : '1px solid transparent',
-              backgroundColor: activeTab === 'OUTBOX' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-              color: activeTab === 'OUTBOX' ? '#FCD34D' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            📦 OUTBOX LOCAL
-            {pendingCount > 0 && (
-              <span style={{
-                backgroundColor: 'var(--color-emergency)',
-                color: '#FFFFFF',
-                borderRadius: '10px',
-                padding: '1px 6px',
-                fontSize: '10px',
-                fontFamily: 'var(--font-mono)',
-              }}>
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* CONTROLES DE RED, RELOJ Y SIMULACIÓN OFFLINE */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Reloj local */}
-          <div style={{
-            fontSize: '12px',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700,
-            color: 'var(--text-main)',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            border: '1px solid var(--border-subtle)',
-          }}>
-            🕒 {currentTime || '--:--:--'}
+              justifyContent: 'center',
+              fontSize: isMobile ? '16px' : '20px',
+              flexShrink: 0,
+            }}>
+              🚒
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h1 style={{
+                  fontSize: isMobile ? '13px' : '15px',
+                  fontWeight: 800,
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {isMobile ? 'CABINA BOMBEROS' : 'CABINA TÁCTICA & VISOR GIS'}
+                </h1>
+                <span className="badge badge-emergency" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                  SCZ
+                </span>
+              </div>
+              {!isMobile && (
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '1px 0 0 0' }}>
+                  Santa Cruz de la Sierra &bull; Edge AI Offline &bull; PostGIS Routing
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Estado de Red */}
+          {/* SELECTOR DE UNIDAD / CABINA */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '4px 10px',
+            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            padding: '3px 8px',
             borderRadius: '6px',
-            backgroundColor: isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)',
-            border: isOnline ? '1px solid var(--color-success)' : '1px solid var(--color-emergency)',
-            color: isOnline ? '#34D399' : '#F87171',
+            border: '1px solid var(--color-tactical-blue)',
+            flexShrink: 0,
           }}>
-            <span style={{ fontSize: '9px' }}>{isOnline ? '●' : '▲'}</span>
-            {isOnline ? 'EN LÍNEA' : 'SIN SEÑAL'}
+            <select
+              value={camionSeleccionado?.id || 'B-04'}
+              onChange={(e) => handleCambiarUnidad(e.target.value)}
+              style={{
+                backgroundColor: 'transparent',
+                color: '#93C5FD',
+                border: 'none',
+                fontSize: isMobile ? '12px' : '13px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-mono)',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+              title="Cambiar la unidad de cabina asignada"
+            >
+              {unidades.map((u) => (
+                <option key={u.id} value={u.id} style={{ backgroundColor: '#0F172A', color: '#F8FAFC' }}>
+                  🚒 {u.id} {isMobile ? '' : `| ${u.placa} (${u.tipo})`}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Toggle de Simulación Offline */}
-          <button
-            onClick={handleToggleSimulatedOffline}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '6px',
+          {/* ESTADO DE CONEXIÓN Y RELOJ */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <div style={{
               fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 700,
-              cursor: 'pointer',
-              border: isSimulatingOffline ? '1px solid var(--color-emergency)' : '1px solid var(--border-subtle)',
-              backgroundColor: isSimulatingOffline ? 'var(--color-emergency)' : 'rgba(255, 255, 255, 0.06)',
-              color: isSimulatingOffline ? '#FFFFFF' : '#CBD5E1',
-            }}
-            title="Simular pérdida total de señal de radio/red celular en terreno"
-          >
-            {isSimulatingOffline ? '🔴 OFFLINE FORZADO' : '📶 SIMULAR OFFLINE'}
-          </button>
+              padding: '3px 6px',
+              borderRadius: '4px',
+              backgroundColor: isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+              border: isOnline ? '1px solid var(--color-success)' : '1px solid var(--color-emergency)',
+              color: isOnline ? '#34D399' : '#F87171',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <span>{isOnline ? '●' : '▲'}</span>
+              <span>{isOnline ? (isMobile ? 'RED' : 'ONLINE') : 'OFFLINE'}</span>
+            </div>
 
-          {/* Botón Instalar PWA */}
-          <button
-            onClick={handleInstallApp}
-            style={{
-              padding: '5px 10px',
-              borderRadius: '6px',
+            <div style={{
               fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
               fontWeight: 700,
-              cursor: 'pointer',
-              border: '1px solid #10B981',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              color: '#6EE7B7',
-            }}
-            title="Instalar en Celular o Tablet de Cabina como PWA nativa"
-          >
-            📲 INSTALAR PWA
-          </button>
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              padding: '3px 6px',
+              borderRadius: '4px',
+              color: 'var(--text-muted)',
+            }}>
+              {currentTime.slice(0, 5) || '--:--'}
+            </div>
+          </div>
+        </div>
+
+        {/* FILA 2: PESTAÑAS Y HERRAMIENTAS RÁPIDAS */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: isMobile ? '4px 10px 8px 10px' : '0 18px 8px 18px',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          gap: '6px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        }}>
+          {/* Pestañas Principales */}
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button
+              onClick={() => setActiveTab('CABINA')}
+              style={{
+                padding: isMobile ? '5px 10px' : '6px 12px',
+                borderRadius: '6px',
+                fontSize: isMobile ? '11px' : '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: activeTab === 'CABINA' ? '1px solid var(--color-tactical-blue)' : '1px solid transparent',
+                backgroundColor: activeTab === 'CABINA' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                color: activeTab === 'CABINA' ? '#93C5FD' : 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🚒 CABINA & RUTA
+            </button>
+
+            <button
+              onClick={() => setActiveTab('MACRO')}
+              style={{
+                padding: isMobile ? '5px 10px' : '6px 12px',
+                borderRadius: '6px',
+                fontSize: isMobile ? '11px' : '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: activeTab === 'MACRO' ? '1px solid var(--color-ai-purple)' : '1px solid transparent',
+                backgroundColor: activeTab === 'MACRO' ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                color: activeTab === 'MACRO' ? '#C4B5FD' : 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              🌐 FLOTAS MACRO
+            </button>
+
+            <button
+              onClick={() => setActiveTab('OUTBOX')}
+              style={{
+                padding: isMobile ? '5px 10px' : '6px 12px',
+                borderRadius: '6px',
+                fontSize: isMobile ? '11px' : '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: activeTab === 'OUTBOX' ? '1px solid var(--color-warning)' : '1px solid transparent',
+                backgroundColor: activeTab === 'OUTBOX' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                color: activeTab === 'OUTBOX' ? '#FCD34D' : 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              📦 OUTBOX
+              {pendingCount > 0 && (
+                <span style={{
+                  backgroundColor: 'var(--color-emergency)',
+                  color: '#FFFFFF',
+                  borderRadius: '10px',
+                  padding: '1px 5px',
+                  fontSize: '9px',
+                  fontFamily: 'var(--font-mono)',
+                }}>
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Botones de Simulación Offline e Instalación PWA */}
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button
+              onClick={handleToggleSimulatedOffline}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '5px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: isSimulatingOffline ? '1px solid var(--color-emergency)' : '1px solid var(--border-subtle)',
+                backgroundColor: isSimulatingOffline ? 'var(--color-emergency)' : 'rgba(255, 255, 255, 0.06)',
+                color: isSimulatingOffline ? '#FFFFFF' : '#CBD5E1',
+                whiteSpace: 'nowrap',
+              }}
+              title="Simular pérdida de señal de radio o celular"
+            >
+              {isSimulatingOffline ? '🔴 OFFLINE' : '📶 SIMULAR'}
+            </button>
+
+            <button
+              onClick={handleInstallApp}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '5px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: '1px solid #10B981',
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                color: '#6EE7B7',
+                whiteSpace: 'nowrap',
+              }}
+              title="Instalar en Celular o Tablet"
+            >
+              📲 INSTALAR
+            </button>
+          </div>
         </div>
       </header>
 
       {/* ============================================================== */}
       {/* 2. CONTENIDO PRINCIPAL: CABINA UNIFICADA | PANORAMA | OUTBOX   */}
       {/* ============================================================== */}
-      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+        
         {/* MODO 1: CABINA DE BOMBEROS CON MAPA CARTOGRÁFICO INTEGRADO */}
         {activeTab === 'CABINA' && (
-          <div style={{ flex: 1, display: 'flex', width: '100%', height: '100%' }}>
-            {/* PANEL IZQUIERDO: MAPA CARTOGRÁFICO CON RUTA DE NAVEGACIÓN */}
-            <div style={{
-              flex: '1 1 60%',
-              height: '100%',
-              position: 'relative',
-              borderRight: '1px solid var(--border-subtle)',
-            }}>
-              {/* Overlay Superior de Navegación Vial */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', width: '100%', height: '100%', overflow: 'hidden' }}>
+            
+            {/* SUB-BARRA DE CONMUTACIÓN PARA MÓVILES: [MAPA] vs [MANDOS CABINA] */}
+            {isMobile && (
               <div style={{
-                position: 'absolute',
-                top: '12px',
-                left: '14px',
-                right: '14px',
-                zIndex: 999,
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                backgroundColor: 'rgba(15, 23, 42, 0.92)',
-                backdropFilter: 'blur(10px)',
-                padding: '10px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                backgroundColor: '#0F172A',
+                borderBottom: '1px solid var(--border-subtle)',
+                padding: '6px 8px',
+                gap: '8px',
+                zIndex: 1000,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '18px' }}>🧭</span>
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#F8FAFC' }}>
-                      RUTA A INCENDIO: {incidenteActivo.incidenteId} (Parque Industrial)
+                <button
+                  onClick={() => setMobileCabinaView('MAPA')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: mobileCabinaView === 'MAPA' ? '2px solid var(--color-tactical-blue)' : '1px solid var(--border-subtle)',
+                    backgroundColor: mobileCabinaView === 'MAPA' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(30, 41, 59, 0.5)',
+                    color: mobileCabinaView === 'MAPA' ? '#93C5FD' : 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  🗺️ MAPA DE RUTA ({camionSeleccionado?.id || 'B-04'})
+                </button>
+
+                <button
+                  onClick={() => setMobileCabinaView('CABINA')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: mobileCabinaView === 'CABINA' ? '2px solid var(--color-emergency)' : '1px solid var(--border-subtle)',
+                    backgroundColor: mobileCabinaView === 'CABINA' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(30, 41, 59, 0.5)',
+                    color: mobileCabinaView === 'CABINA' ? '#FCA5A5' : 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  🚒 MANDOS DE CABINA & IA
+                </button>
+              </div>
+            )}
+
+            {/* SECCIÓN DEL MAPA (Visible en desktop o cuando en móvil se elige 'MAPA') */}
+            {(!isMobile || mobileCabinaView === 'MAPA') && (
+              <div style={{
+                flex: isMobile ? 1 : '1 1 60%',
+                height: '100%',
+                width: isMobile ? '100%' : 'auto',
+                position: 'relative',
+                borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)',
+                overflow: 'hidden',
+              }}>
+                {/* TARJETA FLOTANTE DE INFORMACIÓN DE RUTA (RESPONSIVA, SIN TRASLAPE) */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  right: '10px',
+                  zIndex: 999,
+                  backgroundColor: 'rgba(15, 23, 42, 0.94)',
+                  backdropFilter: 'blur(12px)',
+                  padding: isMobile ? '8px 12px' : '10px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}>
+                  {/* Fila 1: Título e Incidente Destino */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '16px' }}>🧭</span>
+                      <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 800, color: '#F8FAFC' }}>
+                        RUTA: {camionSeleccionado?.id || 'B-04'} ➔ {incidenteActivo.incidenteId}
+                      </span>
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Desde posición de <strong>{camionSeleccionado?.id || 'B-04'}</strong> &bull; PostGIS A* Routing
+                    <span className="badge badge-emergency" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                      INCENDIO INDUSTRIAL
+                    </span>
+                  </div>
+
+                  {/* Fila 2: Métricas de Distancia y Tiempo */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '4px 8px',
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Distancia:</span>
+                      <strong style={{ color: '#60A5FA', fontFamily: 'var(--font-mono)' }}>
+                        {distanciaKmStr} km
+                      </strong>
                     </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>ETA estimado:</span>
+                      <strong style={{ color: '#34D399', fontFamily: 'var(--font-mono)' }}>
+                        {tiempoMinStr} min
+                      </strong>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Hidrantes:</span>
+                      <strong style={{ color: '#06B6D4', fontFamily: 'var(--font-mono)' }}>
+                        {hidrantes.length}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Fila 3: Botones de Acción Táctica en Ruta */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleCalcularRuta(camionSeleccionado?.id)}
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        border: '1px solid var(--color-tactical-blue)',
+                        color: '#93C5FD',
+                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        fontSize: isMobile ? '10px' : '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      🔄 RECALCULAR
+                    </button>
+
+                    <button
+                      onClick={() => handleSimularTelemetria(camionSeleccionado?.id)}
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        border: '1px solid var(--color-success)',
+                        color: '#6EE7B7',
+                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        fontSize: isMobile ? '10px' : '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Simular avance vial de la unidad hacia el siniestro"
+                    >
+                      ▶ AVANZAR RUTA
+                    </button>
+
+                    {isMobile && (
+                      <button
+                        onClick={() => setMobileCabinaView('CABINA')}
+                        style={{
+                          backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                          border: '1px solid var(--color-emergency)',
+                          color: '#FCA5A5',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        🚒 MANDOS ➔
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {rutaCalculada && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>DISTANCIA</span>
-                      <strong style={{ fontSize: '13px', color: '#60A5FA', fontFamily: 'var(--font-mono)' }}>
-                        {rutaCalculada.distanciaKm !== undefined ? rutaCalculada.distanciaKm.toFixed(1) : (rutaCalculada.distanciaTotalMetros ? (rutaCalculada.distanciaTotalMetros / 1000).toFixed(1) : '1.6')} km
-                      </strong>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>TIEMPO ESTIMADO</span>
-                      <strong style={{ fontSize: '13px', color: '#34D399', fontFamily: 'var(--font-mono)' }}>
-                        {rutaCalculada.tiempoMinutos !== undefined ? rutaCalculada.tiempoMinutos.toFixed(0) : (rutaCalculada.duracionEstimadaSegundos ? Math.max(1, Math.round(rutaCalculada.duracionEstimadaSegundos / 60)) : '2')} min
-                      </strong>
-                    </div>
-                  </div>
-                )}
+                {/* Mapa Leaflet interactivo */}
+                <VisorCartografico
+                  unidades={unidades}
+                  hidrantes={hidrantes}
+                  incidenteActivo={incidenteActivo}
+                  rutaCalculada={rutaCalculada}
+                  hotspots={mostrarHotspots ? hotspots : []}
+                  onCamionClick={(camion) => setCamionSeleccionado(camion)}
+                  onTrazarRuta={handleCalcularRuta}
+                />
+              </div>
+            )}
 
-                <div style={{ display: 'flex', gap: '6px' }}>
+            {/* SECCIÓN DE LA CABINA TÁCTICA (Visible en desktop o cuando en móvil se elige 'CABINA') */}
+            {(!isMobile || mobileCabinaView === 'CABINA') && (
+              <div style={{
+                flex: isMobile ? 1 : '1 1 40%',
+                maxWidth: isMobile ? '100%' : '540px',
+                minWidth: isMobile ? '100%' : '380px',
+                height: '100%',
+                backgroundColor: 'rgba(15, 23, 42, 0.98)',
+                borderLeft: isMobile ? 'none' : '1px solid var(--border-subtle)',
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: isMobile ? '12px' : '16px',
+                gap: '12px',
+              }}>
+                {/* Botón flotante para volver al mapa en móvil */}
+                {isMobile && (
                   <button
-                    onClick={() => handleCalcularRuta(camionSeleccionado?.id)}
+                    onClick={() => setMobileCabinaView('MAPA')}
                     style={{
                       backgroundColor: 'rgba(59, 130, 246, 0.2)',
                       border: '1px solid var(--color-tactical-blue)',
                       color: '#93C5FD',
-                      borderRadius: '6px',
-                      padding: '5px 10px',
-                      fontSize: '11px',
-                      fontWeight: 700,
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      fontWeight: 800,
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
                     }}
                   >
-                    🔄 RECALCULAR
+                    ⬅️ VOLVER AL MAPA DE NAVEGACIÓN
                   </button>
-                  <button
-                    onClick={() => handleSimularTelemetria(camionSeleccionado?.id)}
-                    style={{
-                      backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                      border: '1px solid var(--color-success)',
-                      color: '#6EE7B7',
-                      borderRadius: '6px',
-                      padding: '5px 10px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                    title="Simula que el camión avanza por las calles hacia el fuego"
-                  >
-                    ▶ AVANZAR RUTA
-                  </button>
-                </div>
-              </div>
+                )}
 
-              {/* Visor Cartográfico Leaflet */}
-              <VisorCartografico
-                unidades={unidades}
-                hidrantes={hidrantes}
-                incidenteActivo={incidenteActivo}
-                rutaCalculada={rutaCalculada}
-                hotspots={mostrarHotspots ? hotspots : []}
-                onCamionClick={(camion) => setCamionSeleccionado(camion)}
-                onTrazarRuta={handleCalcularRuta}
-              />
-            </div>
+                {/* Tarjeta de Telemetría e Identidad de la Cabina */}
+                <div style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                    <div>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-emergency)', letterSpacing: '0.5px' }}>
+                        UNIDAD SELECCIONADA
+                      </span>
+                      <h2 style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: 800, margin: '2px 0 0 0' }}>
+                        {perfilActivo.nombre}
+                      </h2>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Placa: <strong>{camionSeleccionado?.placa || '2190-ABC'}</strong> &bull; Base: {perfilActivo.estacion}
+                      </span>
+                    </div>
 
-            {/* PANEL DERECHO: CABINA TÁCTICA DE OPERACIONES (Manos con Guantes + IA Local) */}
-            <div style={{
-              flex: '1 1 40%',
-              maxWidth: '560px',
-              minWidth: '400px',
-              height: '100%',
-              backgroundColor: 'rgba(15, 23, 42, 0.98)',
-              borderLeft: '1px solid var(--border-subtle)',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '16px',
-              gap: '14px',
-            }}>
-              {/* Tarjeta de Telemetría e Identidad de la Cabina */}
-              <div style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '10px',
-                padding: '14px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--color-emergency)', letterSpacing: '0.5px' }}>
-                      CABINA ASIGNADA
-                    </span>
-                    <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '2px 0 0 0' }}>
-                      {perfilActivo.nombre}
-                    </h2>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Placa: <strong>{camionSeleccionado?.placa || '2190-ABC'}</strong> &bull; Base: {perfilActivo.estacion}
+                    <span className={`badge ${
+                      camionSeleccionado?.estado === 'EN_TRANSITO' ? 'badge-tactical' :
+                      camionSeleccionado?.estado === 'EN_ESCENA' ? 'badge-emergency' : 'badge-success'
+                    }`}>
+                      {camionSeleccionado?.estado || 'DISPONIBLE'}
                     </span>
                   </div>
-                  <span className={`badge ${
-                    camionSeleccionado?.estado === 'EN_TRANSITO' ? 'badge-tactical' :
-                    camionSeleccionado?.estado === 'EN_ESCENA' ? 'badge-emergency' : 'badge-success'
-                  }`}>
-                    {camionSeleccionado?.estado || 'DISPONIBLE'}
-                  </span>
-                </div>
 
-                {/* Medidores de Agua y Combustible */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
-                  {/* Tanque de Agua */}
-                  <div style={{
-                    backgroundColor: 'rgba(6, 182, 212, 0.08)',
-                    border: '1px solid rgba(6, 182, 212, 0.25)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                      <span style={{ color: '#06B6D4', fontWeight: 700 }}>💧 TANQUE AGUA</span>
-                      <strong style={{ fontFamily: 'var(--font-mono)' }}>
-                        {camionSeleccionado?.litrosAguaActual || 4000} L
-                      </strong>
-                    </div>
+                  {/* Medidores de Agua y Combustible */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                    {/* Tanque de Agua */}
                     <div style={{
-                      height: '6px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                      borderRadius: '3px',
-                      marginTop: '6px',
-                      overflow: 'hidden',
+                      backgroundColor: 'rgba(6, 182, 212, 0.08)',
+                      border: '1px solid rgba(6, 182, 212, 0.25)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
                     }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                        <span style={{ color: '#06B6D4', fontWeight: 700 }}>💧 AGUA</span>
+                        <strong style={{ fontFamily: 'var(--font-mono)' }}>
+                          {camionSeleccionado?.litrosAguaActual || 4000} L
+                        </strong>
+                      </div>
                       <div style={{
-                        height: '100%',
-                        width: `${Math.min(100, ((camionSeleccionado?.litrosAguaActual || 4000) / (camionSeleccionado?.capacidadMaximaAgua || 4000)) * 100)}%`,
-                        backgroundColor: '#06B6D4',
-                        transition: 'width 0.4s ease',
-                      }} />
+                        height: '6px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        borderRadius: '3px',
+                        marginTop: '5px',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${Math.min(100, ((camionSeleccionado?.litrosAguaActual || 4000) / (camionSeleccionado?.capacidadMaximaAgua || 4000)) * 100)}%`,
+                          backgroundColor: '#06B6D4',
+                          transition: 'width 0.4s ease',
+                        }} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Combustible */}
-                  <div style={{
-                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                    border: '1px solid rgba(245, 158, 11, 0.25)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                      <span style={{ color: '#F59E0B', fontWeight: 700 }}>⛽ COMBUSTIBLE</span>
-                      <strong style={{ fontFamily: 'var(--font-mono)' }}>
-                        {camionSeleccionado?.combustiblePorcentaje || 88}%
-                      </strong>
-                    </div>
+                    {/* Combustible */}
                     <div style={{
-                      height: '6px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                      borderRadius: '3px',
-                      marginTop: '6px',
-                      overflow: 'hidden',
+                      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
                     }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                        <span style={{ color: '#F59E0B', fontWeight: 700 }}>⛽ DIESEL</span>
+                        <strong style={{ fontFamily: 'var(--font-mono)' }}>
+                          {camionSeleccionado?.combustiblePorcentaje || 88}%
+                        </strong>
+                      </div>
                       <div style={{
-                        height: '100%',
-                        width: `${camionSeleccionado?.combustiblePorcentaje || 88}%`,
-                        backgroundColor: '#F59E0B',
-                        transition: 'width 0.4s ease',
-                      }} />
+                        height: '6px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        borderRadius: '3px',
+                        marginTop: '5px',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${camionSeleccionado?.combustiblePorcentaje || 88}%`,
+                          backgroundColor: '#F59E0B',
+                          transition: 'width 0.4s ease',
+                        }} />
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Comandos Rápidos de Cabina (Manos con Guantes) */}
+                <TacticalActions
+                  camionId={camionSeleccionado?.id || 'B-04'}
+                  isOnline={isOnline}
+                  onActionRecorded={() => {
+                    cargarDatos(true);
+                    refreshEvidences();
+                  }}
+                />
+
+                {/* Captura de Evidencias e IA Local en Web Worker */}
+                <EvidenceCapture
+                  camionId={camionSeleccionado?.id || 'B-04'}
+                  matricula={perfilActivo.matricula}
+                  incidenteId={incidenteActivo.incidenteId}
+                  isOnline={isOnline}
+                  onEvidenceSaved={() => refreshEvidences()}
+                />
               </div>
-
-              {/* Comandos Rápidos de Cabina (Manos con Guantes) */}
-              <TacticalActions
-                camionId={camionSeleccionado?.id || 'B-04'}
-                isOnline={isOnline}
-                onActionRecorded={() => {
-                  cargarDatos(true);
-                  refreshEvidences();
-                }}
-              />
-
-              {/* Captura de Evidencias e IA Local en Web Worker */}
-              <EvidenceCapture
-                camionId={camionSeleccionado?.id || 'B-04'}
-                matricula={perfilActivo.matricula}
-                incidenteId={incidenteActivo.incidenteId}
-                isOnline={isOnline}
-                onEvidenceSaved={() => refreshEvidences()}
-              />
-            </div>
+            )}
           </div>
         )}
 
-        {/* MODO 2: PANORAMA MACRO DE FLOTAS Y RIESGOS GIS (CENTRO DE OPERACIONES) */}
+        {/* MODO 2: PANORAMA MACRO DE TODAS LAS FLOTAS */}
         {activeTab === 'MACRO' && (
-          <div style={{ flex: 1, display: 'flex', width: '100%', height: '100%' }}>
-            <div style={{ flex: 1, height: '100%', position: 'relative' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', width: '100%', height: '100%', overflow: 'hidden' }}>
+            <div style={{ flex: isMobile ? '1 1 50%' : '1 1 65%', height: '100%', position: 'relative' }}>
               <VisorCartografico
                 unidades={unidades}
                 hidrantes={hidrantes}
@@ -779,34 +963,43 @@ export default function App() {
                 hotspots={mostrarHotspots ? hotspots : []}
                 onCamionClick={(camion) => {
                   setCamionSeleccionado(camion);
-                  setActiveTab('CABINA'); // Al dar click en un camión en el macro mapa, abre su cabina!
+                  setActiveTab('CABINA');
+                  if (isMobile) setMobileCabinaView('MAPA');
                 }}
                 onTrazarRuta={handleCalcularRuta}
               />
             </div>
 
-            <TacticalHud
-              unidades={unidades}
-              camionSeleccionado={camionSeleccionado}
-              onSeleccionarCamion={(camion) => setCamionSeleccionado(camion)}
-              incidenteActivo={incidenteActivo}
-              rutaInfo={rutaCalculada}
-              onActualizarFlotas={() => cargarDatos(true)}
-              isRefreshing={isRefreshing}
-              onCalcularRuta={handleCalcularRuta}
-              onReservarSaga={handleReservarSaga}
-              onCompensarSaga={handleCompensarSaga}
-              onSimularTelemetria={handleSimularTelemetria}
-              toggleHotspots={() => setMostrarHotspots(!mostrarHotspots)}
-              mostrarHotspots={mostrarHotspots}
-            />
+            <div style={{
+              flex: isMobile ? '1 1 50%' : '1 1 35%',
+              maxWidth: isMobile ? '100%' : '440px',
+              height: '100%',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            }}>
+              <TacticalHud
+                unidades={unidades}
+                camionSeleccionado={camionSeleccionado}
+                onSeleccionarCamion={(camion) => setCamionSeleccionado(camion)}
+                incidenteActivo={incidenteActivo}
+                rutaInfo={rutaCalculada}
+                onActualizarFlotas={() => cargarDatos(true)}
+                isRefreshing={isRefreshing}
+                onCalcularRuta={handleCalcularRuta}
+                onReservarSaga={handleReservarSaga}
+                onCompensarSaga={handleCompensarSaga}
+                onSimularTelemetria={handleSimularTelemetria}
+                toggleHotspots={() => setMostrarHotspots(!mostrarHotspots)}
+                mostrarHotspots={mostrarHotspots}
+              />
+            </div>
           </div>
         )}
 
-        {/* MODO 3: BANDEJA DE SALIDA LOCAL (OUTBOX INDEXEDDB) */}
+        {/* MODO 3: BANDEJA DE SALIDA LOCAL (OUTBOX) */}
         {activeTab === 'OUTBOX' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', backgroundColor: 'var(--bg-primary)' }}>
-            <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px' : '20px', backgroundColor: 'var(--bg-primary)' }}>
+            <div style={{ maxWidth: '850px', margin: '0 auto' }}>
               <OutboxVisualizer
                 evidences={evidences}
                 isSyncing={isSyncing}
@@ -817,6 +1010,110 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* ============================================================== */}
+      {/* 3. MODAL DE ASISTENCIA PARA INSTALACIÓN PWA EN CELULARES       */}
+      {/* ============================================================== */}
+      {showInstallModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+        }}>
+          <div style={{
+            backgroundColor: '#1E293B',
+            border: '2px solid var(--color-tactical-blue)',
+            borderRadius: '12px',
+            maxWidth: '480px',
+            width: '100%',
+            padding: '20px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '24px' }}>📲</span>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#F8FAFC' }}>
+                  Instalar en tu Celular o Tablet
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowInstallModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '12px',
+              color: '#FDE68A',
+              lineHeight: 1.4,
+            }}>
+              <strong>⚠️ ¿Por qué Chrome dice "No se puede instalar esta app"?</strong><br />
+              Por políticas de seguridad de Google y Android, la instalación de APKs automáticos exige certificado SSL HTTPS. Al ingresar por dirección IP directa (HTTP), Chrome bloquea la instalación de APK y requiere usar el acceso directo PWA.
+            </div>
+
+            <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E2E8F0' }}>
+              <strong>Pasos sencillos para instalarla como App en pantalla completa:</strong>
+              <ol style={{ paddingLeft: '20px', marginTop: '6px' }}>
+                <li>Toca los <strong>3 puntos verticales (⋮)</strong> arriba a la derecha en Google Chrome.</li>
+                <li>Selecciona la opción <strong>"Agregar a la pantalla principal"</strong> (o <em>"Añadir a pantalla de inicio"</em>).</li>
+                <li>Presiona <strong>"Agregar"</strong>.</li>
+              </ol>
+            </div>
+
+            <div style={{
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '12px',
+              color: '#6EE7B7',
+            }}>
+              ✓ Se creará el ícono <strong>🚒 BomberoCabina</strong> en tu celular que abrirá en <strong>pantalla completa (sin barra de direcciones de Chrome)</strong>, con soporte offline y Web Worker AI.
+            </div>
+
+            <button
+              onClick={() => setShowInstallModal(false)}
+              style={{
+                backgroundColor: 'var(--color-tactical-blue)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#FFFFFF',
+                padding: '10px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                marginTop: '4px',
+              }}
+            >
+              ENTENDIDO, VOLVER A LA CABINA
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

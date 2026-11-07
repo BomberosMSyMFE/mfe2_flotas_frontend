@@ -1,8 +1,8 @@
 {
-  "id": "/?source=pwa",
-  "name": "Bomberos SCZ - Terminal Cabina Móvil PWA",
+  "id": "/",
+  "name": "Bomberos SCZ - Terminal Cabina Móvil",
   "short_name": "BomberoCabina",
-  "description": "Terminal Táctica PWA Offline-First para Cabina de Camión con IA Local en Web Worker e Idempotencia UUID v7",
+  "description": "Terminal Táctica de Cabina y Navegación Cartográfica para Bomberos",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -3,18 +3,41 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from
 import L from 'leaflet';
 import { EVENTOS_BUS, suscribirEvento, emitirEvento } from '../services/eventBus';
 
-// Componente para controlar la cámara del mapa mediante eventos de manera controlada y sin bucles
+// Componente para controlar la cámara del mapa y auto-ajustar tamaño en móviles
 function CameraController({ center, zoom, bounds }) {
   const map = useMap();
   const lastBoundsKeyRef = useRef(null);
   const lastCenterKeyRef = useRef(null);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch (e) {}
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [map, center, zoom, bounds]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      try {
+        map.invalidateSize();
+      } catch (e) {}
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [map]);
+
+  useEffect(() => {
     if (bounds && bounds.length > 0) {
       const boundsKey = `${bounds.length}_${bounds[0]}_${bounds[bounds.length - 1]}`;
       if (lastBoundsKeyRef.current !== boundsKey) {
         lastBoundsKeyRef.current = boundsKey;
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16 });
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
       }
     } else if (center) {
       const centerKey = `${center[0]}_${center[1]}_${zoom}`;
