@@ -252,8 +252,11 @@ export default function App() {
         if (camionSeleccionado) {
           handleCalcularRuta(camionSeleccionado.id);
         }
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([500, 250, 500, 250, 1000]);
+        }
       }
-      alert(`🚨 ORDEN DE DESPACHO RECIBIDA:\n${payload.notification?.title || 'Emergencia Despachada'}\n${payload.notification?.body || ''}`);
+      console.log('🚨 Alerta de despacho procesada en Foreground:', payload.notification?.title);
     });
 
     const handleSwMessage = (e) => {

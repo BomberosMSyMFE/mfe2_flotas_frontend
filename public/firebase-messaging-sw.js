@@ -19,12 +19,13 @@ messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] onBackgroundMessage recibido:', payload);
   
   const title = payload.notification?.title || payload.data?.title || '🚨 ALERTA DE DESPACHO BOMBEROS';
+  const tagId = 'despacho-' + (payload.data?.incidenteId || Date.now());
   const options = {
     body: payload.notification?.body || payload.data?.body || 'Nueva orden de despacho táctico recibida.',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     vibrate: [500, 250, 500, 250, 1000],
-    tag: 'despacho-tactico',
+    tag: tagId,
     renotify: true,
     requireInteraction: true,
     data: {
@@ -57,21 +58,26 @@ self.addEventListener('push', (event) => {
     } catch (e) {}
   }
 
-  const title = data.notification?.title || data.data?.title || '🚨 ORDEN DE DESPACHO TÁCTICO';
-  const body = data.notification?.body || data.data?.body || 'Emergencia despachada a tu unidad.';
+  // Si ya tiene notification en el payload, el SDK compat de Firebase lo procesa.
+  // Si no, mostramos la notificación manualmente
+  if (!data.notification && data.data) {
+    const title = data.data?.title || '🚨 ORDEN DE DESPACHO TÁCTICO';
+    const body = data.data?.body || 'Emergencia despachada a tu unidad.';
+    const tagId = 'despacho-' + (data.data?.incidenteId || Date.now());
 
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body: body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [500, 250, 500, 250, 1000],
-      tag: 'despacho-tactico',
-      renotify: true,
-      requireInteraction: true,
-      data: data.data || {}
-    })
-  );
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body: body,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [500, 250, 500, 250, 1000],
+        tag: tagId,
+        renotify: true,
+        requireInteraction: true,
+        data: data.data || {}
+      })
+    );
+  }
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -106,7 +112,7 @@ self.addEventListener('notificationclick', (event) => {
 // ==========================================
 // 2. CACHÉ OFFLINE Y GESTIÓN DE RED PWA
 // ==========================================
-const CACHE_NAME = 'bomberos-cabina-pwa-v5';
+const CACHE_NAME = 'bomberos-cabina-pwa-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -118,7 +124,7 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Instalando v5 y cacheando...');
+  console.log('[ServiceWorker] Instalando v6 y cacheando...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch((err) => {
@@ -129,7 +135,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activando v5...');
+  console.log('[ServiceWorker] Activando v6...');
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(

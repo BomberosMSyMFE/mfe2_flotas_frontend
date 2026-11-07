@@ -61,25 +61,32 @@ export async function requestPushPermission(unidadId = 'B-01') {
   localStorage.setItem('fcm_token_bombero', currentToken);
   localStorage.setItem('fcm_push_enabled', 'true');
 
-  // Enviar el token al backend de flotas
+  await syncPushTokenToBackend(unidadId, currentToken);
+  return currentToken;
+}
+
+export async function syncPushTokenToBackend(unidadId = 'B-04', explicitToken = null) {
+  const token = explicitToken || (typeof window !== 'undefined' ? localStorage.getItem('fcm_token_bombero') : null);
+  if (!token) return false;
+
   try {
     const isHttps = window.location.protocol === 'https:';
     const baseUrl = isHttps ? '/api/v1/flotas' : 'http://34.28.212.45:8082/api/v1/flotas';
-    await fetch(`${baseUrl}/push-token`, {
+    const res = await fetch(`${baseUrl}/push-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         unidadId: unidadId,
-        token: currentToken,
+        token: token,
         plataforma: 'ANDROID_PWA'
       })
     });
-    console.log('✅ Token FCM registrado exitosamente en backend para unidad:', unidadId);
+    console.log('✅ Token FCM sincronizado con backend para unidad:', unidadId);
+    return res.ok;
   } catch (err) {
-    console.warn('No se pudo registrar el token en el backend inmediatamente:', err);
+    console.warn('Sync token con backend falló:', err);
+    return false;
   }
-
-  return currentToken;
 }
 
 export function subscribeToForegroundMessages(callback) {
@@ -95,12 +102,13 @@ export function subscribeToForegroundMessages(callback) {
         const reg = await navigator.serviceWorker.ready;
         const title = payload.notification?.title || payload.data?.title || '🚨 ORDEN DE DESPACHO TÁCTICO';
         const body = payload.notification?.body || payload.data?.body || 'Nueva orden de despacho recibida.';
+        const tag = 'despacho-' + (payload.data?.incidenteId || Date.now());
         await reg.showNotification(title, {
           body: body,
           icon: '/icon-192.png',
           badge: '/icon-192.png',
           vibrate: [500, 250, 500, 250, 1000],
-          tag: 'despacho-tactico',
+          tag: tag,
           renotify: true,
           requireInteraction: true,
           data: payload.data || {}
@@ -115,3 +123,4 @@ export function subscribeToForegroundMessages(callback) {
     }
   });
 }
+

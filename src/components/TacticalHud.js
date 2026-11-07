@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { requestPushPermission } from '../services/firebaseMessaging';
+import { requestPushPermission, syncPushTokenToBackend } from '../services/firebaseMessaging';
 
 export default function TacticalHud({
   unidades = [],
@@ -19,13 +19,32 @@ export default function TacticalHud({
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensajeEstado, setMensajeEstado] = useState(null);
   const [pushHabilitado, setPushHabilitado] = useState(
-    typeof window !== 'undefined' ? localStorage.getItem('fcm_push_enabled') === 'true' : false
+    typeof window !== 'undefined' ? (localStorage.getItem('fcm_push_enabled') === 'true' || (window.Notification && Notification.permission === 'granted')) : false
   );
   const [activandoPush, setActivandoPush] = useState(false);
 
   // ID del camión activo (tomado del objeto seleccionado o el primero de la flota)
   const camionActivo = camionSeleccionado || unidades[0] || null;
   const camionActivoId = camionActivo?.id || 'B-04';
+
+  // Sincronización automática del token Push hacia el backend en el montaje
+  useEffect(() => {
+    const autoSyncToken = async () => {
+      const savedToken = typeof window !== 'undefined' ? localStorage.getItem('fcm_token_bombero') : null;
+      if (savedToken) {
+        setPushHabilitado(true);
+        await syncPushTokenToBackend(camionActivoId, savedToken);
+      } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          await requestPushPermission(camionActivoId);
+          setPushHabilitado(true);
+        } catch (e) {
+          console.warn('Auto-registro silencioso de push omitido:', e);
+        }
+      }
+    };
+    autoSyncToken();
+  }, [camionActivoId]);
 
   const ejecutarAccionSegura = async (fn, mensaje) => {
     try {
@@ -56,7 +75,7 @@ export default function TacticalHud({
       setPushHabilitado(true);
       setMensajeEstado({
         tipo: 'exito',
-        texto: '✅ ¡Notificaciones Push Tácticas activadas! Tu teléfono ya está listo para recibir alertas de despacho.'
+        texto: '✅ ¡Notificaciones Push Tácticas activadas! Tu teléfono ya está registrado en Firebase y listo para recibir alertas.'
       });
     } catch (err) {
       setMensajeEstado({
@@ -72,6 +91,13 @@ export default function TacticalHud({
     try {
       setCargandoAccion(true);
       setMensajeEstado(null);
+
+      // Garantizar que el backend tenga el token antes de disparar el despacho
+      const savedToken = typeof window !== 'undefined' ? localStorage.getItem('fcm_token_bombero') : null;
+      if (savedToken) {
+        await syncPushTokenToBackend(camionActivoId, savedToken);
+      }
+
       const isHttps = window.location.protocol === 'https:';
       const baseUrl = isHttps ? '/api/v1/flotas' : 'http://34.28.212.45:8082/api/v1/flotas';
       const res = await fetch(`${baseUrl}/despacho-notificar`, {
@@ -91,7 +117,7 @@ export default function TacticalHud({
       if (data.status === 'SUCCESS') {
         setMensajeEstado({
           tipo: 'exito',
-          texto: '🚨 ¡Orden de Despacho Táctico enviada! Revisa la notificación push en tu celular.'
+          texto: '🚨 ¡Orden de Despacho enviada por Firebase! Revisa la notificación emergente en tu celular.'
         });
       } else {
         setMensajeEstado({
@@ -234,58 +260,58 @@ export default function TacticalHud({
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {!pushHabilitado ? (
-              <button
-                onClick={handleActivarNotificaciones}
-                disabled={activandoPush}
-                style={{
-                  flex: 1,
-                  backgroundColor: 'rgba(239, 68, 68, 0.25)',
-                  border: '1px solid var(--color-danger)',
-                  color: '#FECACA',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '9px 12px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-              >
-                {activandoPush ? '⏳ REGISTRANDO EN FIREBASE...' : '🔔 ACTIVAR PUSH EN ESTE CELULAR'}
-              </button>
-            ) : (
-              <button
-                onClick={handleSimularDespachoPush}
-                disabled={cargandoAccion}
-                style={{
-                  flex: 1,
-                  backgroundColor: 'rgba(220, 38, 38, 0.4)',
-                  border: '1px solid #EF4444',
-                  color: '#FFFFFF',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '9px 12px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)',
-                }}
-              >
-                {cargandoAccion ? '📡 ENVIANDO ALERTA...' : '🚨 PROBAR DESPACHO PUSH A MI CELULAR'}
-              </button>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={handleSimularDespachoPush}
+              disabled={cargandoAccion}
+              style={{
+                width: '100%',
+                backgroundColor: 'rgba(220, 38, 38, 0.4)',
+                border: '1px solid #EF4444',
+                color: '#FFFFFF',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 12px',
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)',
+              }}
+            >
+              {cargandoAccion ? '📡 ENVIANDO ALERTA A FIREBASE...' : '🚨 PROBAR DESPACHO PUSH A MI CELULAR'}
+            </button>
+
+            <button
+              onClick={handleActivarNotificaciones}
+              disabled={activandoPush}
+              style={{
+                width: '100%',
+                backgroundColor: pushHabilitado ? 'rgba(55, 65, 81, 0.5)' : 'rgba(239, 68, 68, 0.25)',
+                border: pushHabilitado ? '1px solid #4B5563' : '1px solid var(--color-danger)',
+                color: pushHabilitado ? '#D1D5DB' : '#FECACA',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 12px',
+                fontSize: '10px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              {activandoPush
+                ? '⏳ REGISTRANDO EN FIREBASE...'
+                : (pushHabilitado ? '🔄 RE-VINCULAR DISPOSITIVO CON FIREBASE' : '🔔 ACTIVAR PUSH EN ESTE CELULAR')}
+            </button>
           </div>
           <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
             {pushHabilitado
-              ? '✅ Celular suscrito. Pulsa el botón para probar la alerta táctica en tu celular.'
-              : 'Toca el botón en tu celular para autorizar alertas de emergencia en pantalla de bloqueo.'}
+              ? '✅ Dispositivo vinculado. Toca "Probar Despacho" para enviar la alerta a la pantalla de bloqueo.'
+              : 'Toca "Activar Push" y luego "Permitir" cuando Chrome solicite permisos.'}
           </span>
         </div>
 
