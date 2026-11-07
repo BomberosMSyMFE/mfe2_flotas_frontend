@@ -86,8 +86,30 @@ export function subscribeToForegroundMessages(callback) {
   initFirebase();
   if (!messaging) return () => {};
 
-  return onMessage(messaging, (payload) => {
+  return onMessage(messaging, async (payload) => {
     console.log('[Foreground FCM] Mensaje recibido en primer plano:', payload);
+
+    // Disparar la notificación nativa en Android incluso si la app está abierta en pantalla
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        const title = payload.notification?.title || payload.data?.title || '🚨 ORDEN DE DESPACHO TÁCTICO';
+        const body = payload.notification?.body || payload.data?.body || 'Nueva orden de despacho recibida.';
+        await reg.showNotification(title, {
+          body: body,
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          vibrate: [500, 250, 500, 250, 1000],
+          tag: 'despacho-tactico',
+          renotify: true,
+          requireInteraction: true,
+          data: payload.data || {}
+        });
+      }
+    } catch (e) {
+      console.warn('Advertencia mostrando notificación nativa en primer plano:', e);
+    }
+
     if (callback) {
       callback(payload);
     }

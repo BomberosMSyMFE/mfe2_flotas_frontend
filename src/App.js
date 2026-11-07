@@ -148,9 +148,9 @@ export default function App() {
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
-        .register('/sw.js')
+        .register('/firebase-messaging-sw.js')
         .then((reg) => {
-          console.log('[App] Service Worker activo:', reg.scope);
+          console.log('[App] Master Service Worker activo:', reg.scope);
           reg.update();
         })
         .catch((err) => {

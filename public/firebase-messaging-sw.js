@@ -1,6 +1,9 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
+// ==========================================
+// 1. INICIALIZACIÓN DE FIREBASE CLOUD MESSAGING
+// ==========================================
 firebase.initializeApp({
   apiKey: "AIzaSyARjygnKvJvJDtkRgmiWlEw1j9C3KTix38",
   authDomain: "bomberos-scz-flotas.firebaseapp.com",
@@ -13,7 +16,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Mensaje recibido en background:', payload);
+  console.log('[firebase-messaging-sw.js] onBackgroundMessage recibido:', payload);
   
   const title = payload.notification?.title || payload.data?.title || '🚨 ALERTA DE DESPACHO BOMBEROS';
   const options = {
@@ -38,6 +41,37 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   return self.registration.showNotification(title, options);
+});
+
+// Listener nativo push de respaldo para asegurar entrega en todos los navegadores móviles
+self.addEventListener('push', (event) => {
+  console.log('[ServiceWorker] Evento push nativo recibido');
+  let data = {};
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (err) {
+    try {
+      data = { notification: { body: event.data.text() } };
+    } catch (e) {}
+  }
+
+  const title = data.notification?.title || data.data?.title || '🚨 ORDEN DE DESPACHO TÁCTICO';
+  const body = data.notification?.body || data.data?.body || 'Emergencia despachada a tu unidad.';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [500, 250, 500, 250, 1000],
+      tag: 'despacho-tactico',
+      renotify: true,
+      requireInteraction: true,
+      data: data.data || {}
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -67,4 +101,88 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// ==========================================
+// 2. CACHÉ OFFLINE Y GESTIÓN DE RED PWA
+// ==========================================
+const CACHE_NAME = 'bomberos-cabina-pwa-v5';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/workers/aiWorker.js',
+];
+
+self.addEventListener('install', (event) => {
+  console.log('[ServiceWorker] Instalando v5 y cacheando...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS).catch((err) => {
+        console.warn('[ServiceWorker] Advertencia al cachear:', err);
+      });
+    }).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[ServiceWorker] Activando v5...');
+  event.waitUntil(
+    caches.keys().then((keyList) => {
+      return Promise.all(
+        keyList.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/') || url.port === '8082' || url.port === '8080' || url.port === '8005') {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
+  );
+});
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-evidencias-outbox') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'TRIGGER_BACKGROUND_SYNC' });
+        });
+      })
+    );
+  }
 });
