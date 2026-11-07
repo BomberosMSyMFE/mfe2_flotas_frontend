@@ -76,6 +76,7 @@ module.exports = {
       patterns: [
         { from: 'public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },
         { from: 'public/sw.js', to: 'sw.js', noErrorOnMissing: true },
+        { from: 'public/firebase-messaging-sw.js', to: 'firebase-messaging-sw.js', noErrorOnMissing: true },
         { from: 'public/icon-192.png', to: 'icon-192.png', noErrorOnMissing: true },
         { from: 'public/icon-512.png', to: 'icon-512.png', noErrorOnMissing: true },
         { from: 'public/workers/aiWorker.js', to: 'workers/aiWorker.js', noErrorOnMissing: true },

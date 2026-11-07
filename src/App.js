@@ -15,6 +15,7 @@ import {
 import { fetchHotspotsDemo, fetchHidrantesMcp } from './services/mcpApi';
 import { syncManager } from './services/syncManager';
 import { getAllOutboxEvidences } from './services/indexedDbOutbox';
+import { subscribeToForegroundMessages } from './services/firebaseMessaging';
 
 // Perfiles de cabina pre-configurados para los camiones de Santa Cruz
 const PERFILES_CABINA = {
@@ -231,6 +232,59 @@ export default function App() {
       lastSelectedCamionIdRef.current = camionSeleccionado.id;
       handleCalcularRuta(camionSeleccionado.id);
     }
+  }, [camionSeleccionado, handleCalcularRuta]);
+
+  // Listener de Notificaciones Push de Despacho Táctico (FCM)
+  useEffect(() => {
+    const unsubscribeFCM = subscribeToForegroundMessages((payload) => {
+      console.log('[App] Despacho recibido en Foreground:', payload);
+      const data = payload.data || {};
+      if (data.latitud && data.longitud) {
+        const destLat = parseFloat(data.latitud);
+        const destLon = parseFloat(data.longitud);
+        setIncidenteActivo({
+          incidenteId: data.incidenteId || 'INC-DESPACHO-TACTICO',
+          tipoFuego: data.tipoIncidente || 'INCENDIO',
+          latitud: destLat,
+          longitud: destLon,
+          litrosMinimos: 8000,
+        });
+        if (camionSeleccionado) {
+          handleCalcularRuta(camionSeleccionado.id);
+        }
+      }
+      alert(`🚨 ORDEN DE DESPACHO RECIBIDA:\n${payload.notification?.title || 'Emergencia Despachada'}\n${payload.notification?.body || ''}`);
+    });
+
+    const handleSwMessage = (e) => {
+      if (e.data && e.data.type === 'PUSH_DESPACHO_CLICKED') {
+        const data = e.data.data || {};
+        if (data.latitud && data.longitud) {
+          const destLat = parseFloat(data.latitud);
+          const destLon = parseFloat(data.longitud);
+          setIncidenteActivo({
+            incidenteId: data.incidenteId || 'INC-DESPACHO-TACTICO',
+            tipoFuego: data.tipoIncidente || 'INCENDIO',
+            latitud: destLat,
+            longitud: destLon,
+            litrosMinimos: 8000,
+          });
+          if (camionSeleccionado) {
+            handleCalcularRuta(camionSeleccionado.id);
+          }
+        }
+      }
+    };
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+    }
+
+    return () => {
+      if (unsubscribeFCM) unsubscribeFCM();
+      if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      }
+    };
   }, [camionSeleccionado, handleCalcularRuta]);
 
   // Manejar cambio de perfil/unidad desde el selector del operador o cabina

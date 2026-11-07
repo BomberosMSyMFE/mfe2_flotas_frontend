@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "copy-webpack-plugin": "^14.0.0",
+    "firebase": "^13.2.0",
     "idb": "^8.0.4",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",

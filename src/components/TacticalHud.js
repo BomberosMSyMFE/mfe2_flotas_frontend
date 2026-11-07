@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { requestPushPermission } from '../services/firebaseMessaging';
 
 export default function TacticalHud({
   unidades = [],
@@ -17,6 +18,10 @@ export default function TacticalHud({
 }) {
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensajeEstado, setMensajeEstado] = useState(null);
+  const [pushHabilitado, setPushHabilitado] = useState(
+    typeof window !== 'undefined' ? localStorage.getItem('fcm_push_enabled') === 'true' : false
+  );
+  const [activandoPush, setActivandoPush] = useState(false);
 
   // ID del camión activo (tomado del objeto seleccionado o el primero de la flota)
   const camionActivo = camionSeleccionado || unidades[0] || null;
@@ -40,6 +45,67 @@ export default function TacticalHud({
     const encontrado = unidades.find((u) => u.id === id);
     if (encontrado && onSeleccionarCamion) {
       onSeleccionarCamion(encontrado);
+    }
+  };
+
+  const handleActivarNotificaciones = async () => {
+    try {
+      setActivandoPush(true);
+      setMensajeEstado(null);
+      const token = await requestPushPermission(camionActivoId);
+      setPushHabilitado(true);
+      setMensajeEstado({
+        tipo: 'exito',
+        texto: '✅ ¡Notificaciones Push Tácticas activadas! Tu teléfono ya está listo para recibir alertas de despacho.'
+      });
+    } catch (err) {
+      setMensajeEstado({
+        tipo: 'error',
+        texto: 'Error activando notificaciones: ' + (err.message || err)
+      });
+    } finally {
+      setActivandoPush(false);
+    }
+  };
+
+  const handleSimularDespachoPush = async () => {
+    try {
+      setCargandoAccion(true);
+      setMensajeEstado(null);
+      const isHttps = window.location.protocol === 'https:';
+      const baseUrl = isHttps ? '/api/v1/flotas' : 'http://34.28.212.45:8082/api/v1/flotas';
+      const res = await fetch(`${baseUrl}/despacho-notificar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unidadId: camionActivoId,
+          incidenteId: 'INC-2026-SCZ-' + Math.floor(100 + Math.random() * 900),
+          tipoIncidente: 'INCENDIO ESTRUCTURAL',
+          ubicacion: 'Av. Banzer y 4to Anillo (Santa Cruz)',
+          latitud: -17.7650,
+          longitud: -63.1750,
+          prioridad: 'CODIGO_ROJO'
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'SUCCESS') {
+        setMensajeEstado({
+          tipo: 'exito',
+          texto: '🚨 ¡Orden de Despacho Táctico enviada! Revisa la notificación push en tu celular.'
+        });
+      } else {
+        setMensajeEstado({
+          tipo: 'error',
+          texto: data.mensaje || 'Error al emitir despacho push.'
+        });
+      }
+    } catch (err) {
+      setMensajeEstado({
+        tipo: 'error',
+        texto: 'Error comunicando con servidor: ' + err.message
+      });
+    } finally {
+      setCargandoAccion(false);
     }
   };
 
@@ -136,6 +202,92 @@ export default function TacticalHud({
             {mensajeEstado.texto}
           </div>
         )}
+
+        {/* Panel de Alertas Push Móviles (FCM) */}
+        <div
+          style={{
+            padding: '12px 14px',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#FCA5A5', letterSpacing: '0.05em' }}>
+              🔔 NOTIFICACIONES PUSH MÓVIL
+            </span>
+            <span
+              style={{
+                fontSize: '10px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                backgroundColor: pushHabilitado ? 'rgba(34, 197, 94, 0.2)' : 'rgba(156, 163, 175, 0.2)',
+                color: pushHabilitado ? '#4ADE80' : '#9CA3AF',
+                fontWeight: 700,
+                border: `1px solid ${pushHabilitado ? '#22C55E' : '#6B7280'}`,
+              }}
+            >
+              {pushHabilitado ? '● PUSH ACTIVO' : '○ NO REGISTRADO'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {!pushHabilitado ? (
+              <button
+                onClick={handleActivarNotificaciones}
+                disabled={activandoPush}
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                  border: '1px solid var(--color-danger)',
+                  color: '#FECACA',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '9px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                {activandoPush ? '⏳ REGISTRANDO EN FIREBASE...' : '🔔 ACTIVAR PUSH EN ESTE CELULAR'}
+              </button>
+            ) : (
+              <button
+                onClick={handleSimularDespachoPush}
+                disabled={cargandoAccion}
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(220, 38, 38, 0.4)',
+                  border: '1px solid #EF4444',
+                  color: '#FFFFFF',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '9px 12px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)',
+                }}
+              >
+                {cargandoAccion ? '📡 ENVIANDO ALERTA...' : '🚨 PROBAR DESPACHO PUSH A MI CELULAR'}
+              </button>
+            )}
+          </div>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+            {pushHabilitado
+              ? '✅ Celular suscrito. Pulsa el botón para probar la alerta táctica en tu celular.'
+              : 'Toca el botón en tu celular para autorizar alertas de emergencia en pantalla de bloqueo.'}
+          </span>
+        </div>
 
         {/* 1. SELECCIÓN DE UNIDAD (SINCRONIZACIÓN BIDIRECCIONAL CON EL MAPA) */}
         <div
