@@ -580,13 +580,13 @@ export default function App() {
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>DISTANCIA</span>
                       <strong style={{ fontSize: '13px', color: '#60A5FA', fontFamily: 'var(--font-mono)' }}>
-                        {rutaCalculada.distanciaKm?.toFixed(1) || '4.2'} km
+                        {rutaCalculada.distanciaKm !== undefined ? rutaCalculada.distanciaKm.toFixed(1) : (rutaCalculada.distanciaTotalMetros ? (rutaCalculada.distanciaTotalMetros / 1000).toFixed(1) : '1.6')} km
                       </strong>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>TIEMPO ESTIMADO</span>
                       <strong style={{ fontSize: '13px', color: '#34D399', fontFamily: 'var(--font-mono)' }}>
-                        {rutaCalculada.tiempoMinutos?.toFixed(0) || '7'} min
+                        {rutaCalculada.tiempoMinutos !== undefined ? rutaCalculada.tiempoMinutos.toFixed(0) : (rutaCalculada.duracionEstimadaSegundos ? Math.max(1, Math.round(rutaCalculada.duracionEstimadaSegundos / 60)) : '2')} min
                       </strong>
                     </div>
                   </div>
