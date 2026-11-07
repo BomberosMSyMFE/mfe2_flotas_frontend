@@ -8,6 +8,9 @@ export const getFlotasApiBase = () => {
     if (host === 'localhost' || host === '127.0.0.1') {
       return 'http://localhost:8080/api/v1/flotas';
     }
+    if (window.location.protocol === 'https:') {
+      return '/api/v1/flotas';
+    }
     // Producción en GCP VM o cargado externamente desde el App Shell de Nataly en AWS EC2
     return 'http://34.28.212.45:8082/api/v1/flotas';
   }
