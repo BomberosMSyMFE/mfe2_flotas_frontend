@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { EVENTOS_BUS, suscribirEvento, emitirEvento } from '../services/eventBus';
+import { fetchUnidadesActivas } from '../services/flotasApi';
+import { fetchHidrantesMcp, fetchHotspotsDemo } from '../services/mcpApi';
 
 // Componente para controlar la cámara del mapa y auto-ajustar tamaño en móviles
 function CameraController({ center, zoom, bounds }) {
@@ -123,6 +125,33 @@ export default function VisorCartografico({
   const [mapCenter, setMapCenter] = useState([-17.7833, -63.1821]);
   const [mapZoom, setMapZoom] = useState(13);
 
+  // Auto-carga resiliente para cuando se monta como Microfrontend en el App Shell de Nataly sin props
+  const [unidadesSelf, setUnidadesSelf] = useState([]);
+  const [hidrantesSelf, setHidrantesSelf] = useState([]);
+  const [hotspotsSelf, setHotspotsSelf] = useState([]);
+
+  useEffect(() => {
+    if (!unidades || unidades.length === 0) {
+      fetchUnidadesActivas().then(data => {
+        if (data && data.length > 0) setUnidadesSelf(data);
+      });
+    }
+    if (!hidrantes || hidrantes.length === 0) {
+      fetchHidrantesMcp(-17.7833, -63.1821, 3000).then(data => {
+        if (data && data.length > 0) setHidrantesSelf(data);
+      });
+    }
+    if (!hotspots || hotspots.length === 0) {
+      fetchHotspotsDemo().then(data => {
+        if (data && data.zonas_criticas) setHotspotsSelf(data.zonas_criticas);
+      });
+    }
+  }, [unidades, hidrantes, hotspots]);
+
+  const activeUnidades = (unidades && unidades.length > 0) ? unidades : unidadesSelf;
+  const activeHidrantes = (hidrantes && hidrantes.length > 0) ? hidrantes : hidrantesSelf;
+  const activeHotspots = (hotspots && hotspots.length > 0) ? hotspots : hotspotsSelf;
+
   // Escuchar el Event Bus global del navegador (desacoplamiento total con Angular Host)
   useEffect(() => {
     const desuscribir = suscribirEvento(EVENTOS_BUS.INCIDENTE_SELECCIONADO, (detalle) => {
@@ -204,7 +233,7 @@ export default function VisorCartografico({
         />
 
         {/* 1. Capa de Hotspots ML (DBSCAN Clusters Espaciales en Santa Cruz) */}
-        {hotspots && hotspots.map((cluster) => (
+        {activeHotspots && activeHotspots.map((cluster) => (
           <Circle
             key={`cluster-${cluster.cluster_id}`}
             center={[cluster.centroide.latitud, cluster.centroide.longitud]}
@@ -236,7 +265,7 @@ export default function VisorCartografico({
         ))}
 
         {/* 2. Capa de Hidrantes de la Red PostGIS */}
-        {hidrantes && hidrantes.map((h) => (
+        {activeHidrantes && activeHidrantes.map((h) => (
           <Marker
             key={h.id}
             position={[h.latitud, h.longitud]}
@@ -326,7 +355,7 @@ export default function VisorCartografico({
         )}
 
         {/* 5. Unidades de Flota en Tiempo Real (CU-05) */}
-        {unidades && unidades.map((camion) => (
+        {activeUnidades && activeUnidades.map((camion) => (
           <Marker
             key={camion.id}
             position={[camion.latitud, camion.longitud]}

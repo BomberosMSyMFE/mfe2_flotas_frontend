@@ -8,10 +8,14 @@ export const getFlotasApiBase = () => {
     if (host === 'localhost' || host === '127.0.0.1') {
       return 'http://localhost:8080/api/v1/flotas';
     }
+    // Si estamos embebidos en el App Shell de Nataly en duckdns.org
+    if (host.includes('bomberos-uagrm-scz') || host.includes('duckdns.org')) {
+      return 'https://34.28.212.45.sslip.io/api/v1/flotas';
+    }
     if (window.location.protocol === 'https:') {
       return '/api/v1/flotas';
     }
-    // Producción en GCP VM o cargado externamente desde el App Shell de Nataly en AWS EC2
+    // Producción en GCP VM
     return 'http://34.28.212.45:8082/api/v1/flotas';
   }
   return 'http://34.28.212.45:8082/api/v1/flotas';
