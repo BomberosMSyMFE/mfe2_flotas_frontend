@@ -302,80 +302,101 @@ export default function EvidenceCapture({
     }
   };
 
-  // Captura y dictado real por voz desde el micrófono (Web Speech API + MediaRecorder)
-  const handleVoiceToggle = async () => {
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const isRecordingRef = useRef(false);
+
+  // Timer para duración de la grabación
+  useEffect(() => {
+    let interval = null;
     if (isRecording) {
-      // Detener grabación
+      interval = setInterval(() => {
+        setRecordingSeconds(s => s + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRecording]);
+
+  // Captura y dictado real por voz desde el micrófono (aislado y ultra-resistente)
+  const handleVoiceToggle = async () => {
+    // Si ya está grabando, el usuario quiere detener
+    if (isRecordingRef.current) {
+      isRecordingRef.current = false;
+      setIsRecording(false);
+
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) {}
       }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         try { mediaRecorderRef.current.stop(); } catch (e) {}
       }
-      setIsRecording(false);
+      if (textoReporte.trim()) {
+        handleProcessWithAi();
+      }
       return;
     }
 
     setMicrofonoError(null);
 
-    // 1. Iniciar captura de audio real con MediaRecorder
+    // 1. Solicitar permiso explícito al navegador/Android primero
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
-          stream.getTracks().forEach(track => track.stop());
-        };
-
-        mediaRecorder.start(200);
+        const streamTest = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Liberar el track inmediatamente para no bloquear el hardware
+        streamTest.getTracks().forEach(t => t.stop());
       }
-    } catch (micErr) {
-      console.warn('Acceso a micrófono no disponible:', micErr);
-      setMicrofonoError('Permiso de micrófono no concedido en el navegador.');
+    } catch (permErr) {
+      console.warn('Permiso de micrófono denegado:', permErr);
+      setMicrofonoError('Permiso de micrófono denegado. Permite el acceso en los ajustes del navegador.');
+      return;
     }
 
-    // 2. Reconocimiento y transcripción de voz en tiempo real con Web Speech API
+    isRecordingRef.current = true;
+    setIsRecording(true);
+
     const SpeechRecognition = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+
     if (SpeechRecognition) {
       try {
         const recognition = new SpeechRecognition();
         recognitionRef.current = recognition;
-        recognition.lang = 'es-BO';
+        recognition.lang = 'es-419'; // Español latinoamericano (universal en Android y navegadores)
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
 
-        let finalTranscript = '';
+        let baseText = textoReporte ? textoReporte.trim() + ' ' : '';
 
         recognition.onstart = () => {
           setIsRecording(true);
+          setMicrofonoError(null);
         };
 
         recognition.onresult = (event) => {
           let interimTranscript = '';
+          let finalTranscript = '';
+
           for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript + ' ';
+              finalTranscript += transcript + ' ';
             } else {
-              interimTranscript += event.results[i][0].transcript;
+              interimTranscript += transcript;
             }
           }
-          const fullText = (finalTranscript + interimTranscript).trim();
+
+          if (finalTranscript) {
+            baseText += finalTranscript;
+          }
+
+          const fullText = (baseText + interimTranscript).trim();
           if (fullText) {
             setTextoReporte(fullText);
 
-            // Inferencia Edge AI en vivo conforme el bombero habla
+            // Inferencia Edge AI reactiva mientras habla
             if (workerRef.current && fullText.length > 8) {
               workerRef.current.postMessage({
                 type: 'CLASSIFY_REPORT',
@@ -386,32 +407,81 @@ export default function EvidenceCapture({
         };
 
         recognition.onerror = (event) => {
-          console.warn('Speech recognition error:', event.error);
-          if (event.error === 'not-allowed') {
-            setMicrofonoError('Micrófono bloqueado. Habilita el acceso en los permisos del navegador.');
+          console.warn('SpeechRecognition error:', event.error);
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setMicrofonoError('Permiso de micrófono denegado. Permite el micrófono en los ajustes del navegador.');
+            isRecordingRef.current = false;
+            setIsRecording(false);
+          } else if (event.error === 'network' || event.error === 'audio-capture') {
+            // Si el servicio en la nube de Google falla o la conexión es inestable, conmutar a MediaRecorder sin cerrar
+            console.warn('Conmutando a grabación directa por MediaRecorder...');
+            try { recognition.stop(); } catch (e) {}
+            iniciarMediaRecorderFallback();
           }
-          setIsRecording(false);
+          // Otros errores como 'no-speech' se ignoran para no cortar la grabación
         };
 
         recognition.onend = () => {
-          setIsRecording(false);
-          if (textoReporte.trim()) {
-            handleProcessWithAi();
+          // Si el usuario no pulsó detener, reiniciar suavemente tras breve pausa para no colisionar
+          if (isRecordingRef.current) {
+            setTimeout(() => {
+              if (isRecordingRef.current && recognitionRef.current) {
+                try {
+                  recognitionRef.current.start();
+                } catch (e) {
+                  // Si el navegador rechaza reabrir SpeechRecognition, continuar con MediaRecorder
+                  if (isRecordingRef.current && (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive')) {
+                    iniciarMediaRecorderFallback();
+                  }
+                }
+              }
+            }, 300);
+          } else {
+            setIsRecording(false);
           }
         };
 
         recognition.start();
-        setIsRecording(true);
-      } catch (e) {
-        console.warn('Error iniciando SpeechRecognition:', e);
-        setIsRecording(true);
+      } catch (err) {
+        console.warn('Error iniciando SpeechRecognition, usando MediaRecorder:', err);
+        iniciarMediaRecorderFallback();
       }
     } else {
-      // Fallback si el navegador no tiene Web Speech API
-      setIsRecording(true);
-      setTimeout(() => {
+      iniciarMediaRecorderFallback();
+    }
+  };
+
+  const iniciarMediaRecorderFallback = async () => {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start(250);
+        setIsRecording(true);
+        isRecordingRef.current = true;
+      } else {
+        setMicrofonoError('Tu navegador no soporta captura de audio por micrófono.');
         setIsRecording(false);
-      }, 4000);
+        isRecordingRef.current = false;
+      }
+    } catch (e) {
+      setMicrofonoError('Permiso de micrófono no disponible en este dispositivo.');
+      setIsRecording(false);
+      isRecordingRef.current = false;
     }
   };
 
@@ -585,7 +655,7 @@ export default function EvidenceCapture({
               onClick={handleVoiceToggle}
               title="Graba tu voz usando el micrófono de tu celular o PC y transcribe en tiempo real"
             >
-              {isRecording ? '🔴 GRABANDO TU VOZ... (TOCA PARA DETENER)' : '🎙️ GRABAR DICTADO POR VOZ (MICRÓFONO)'}
+              {isRecording ? `🔴 GRABANDO TU VOZ (${recordingSeconds}s)... (TOCA PARA DETENER)` : '🎙️ GRABAR DICTADO POR VOZ (MICRÓFONO)'}
             </button>
           </div>
 
