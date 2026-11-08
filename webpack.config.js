@@ -48,10 +48,11 @@ module.exports = {
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: 'mf_mapa',
+      name: 'mfe2_flotas_frontend',
       filename: 'remoteEntry.js',
       exposes: {
         './VisorCartografico': './src/components/VisorCartografico',
+        './FlotasApp': './src/App',
         './FlotasMapModule': './src/App',
         './CabinaBombero': './src/App',
       },
@@ -80,6 +81,7 @@ module.exports = {
         { from: 'public/icon-192.png', to: 'icon-192.png', noErrorOnMissing: true },
         { from: 'public/icon-512.png', to: 'icon-512.png', noErrorOnMissing: true },
         { from: 'public/workers/aiWorker.js', to: 'workers/aiWorker.js', noErrorOnMissing: true },
+        { from: 'public/data', to: 'data', noErrorOnMissing: true },
       ],
     }),
   ],

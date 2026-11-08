@@ -45,7 +45,7 @@ export default function App() {
   const [unidades, setUnidades] = useState([]);
   const [hidrantes, setHidrantes] = useState([]);
   const [hotspots, setHotspots] = useState([]);
-  const [mostrarHotspots, setMostrarHotspots] = useState(false);
+  const [mostrarHotspots, setMostrarHotspots] = useState(true);
   const [camionSeleccionado, setCamionSeleccionado] = useState(null);
   const [rutaCalculada, setRutaCalculada] = useState(null);
   const [telemetryStep, setTelemetryStep] = useState(0);
@@ -846,6 +846,7 @@ export default function App() {
                   hidrantes={hidrantes}
                   incidenteActivo={incidenteActivo}
                   rutaCalculada={rutaCalculada}
+                  camionSeleccionado={camionSeleccionado}
                   hotspots={mostrarHotspots ? hotspots : []}
                   onCamionClick={(camion) => setCamionSeleccionado(camion)}
                   onTrazarRuta={handleCalcularRuta}
@@ -1017,6 +1018,7 @@ export default function App() {
                 hidrantes={hidrantes}
                 incidenteActivo={incidenteActivo}
                 rutaCalculada={rutaCalculada}
+                camionSeleccionado={camionSeleccionado}
                 hotspots={mostrarHotspots ? hotspots : []}
                 onCamionClick={(camion) => {
                   setCamionSeleccionado(camion);

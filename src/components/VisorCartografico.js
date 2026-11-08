@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import ReactDOM from 'react-dom/client';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { EVENTOS_BUS, suscribirEvento, emitirEvento } from '../services/eventBus';
@@ -114,6 +115,7 @@ export default function VisorCartografico({
   hidrantes = [],
   incidenteActivo = null,
   rutaCalculada = null,
+  camionSeleccionado = null,
   hotspots = [],
   onCamionClick = null,
   onTrazarRuta = null
@@ -147,6 +149,43 @@ export default function VisorCartografico({
     return null;
   }, [rutaCalculada]);
 
+  // Desmarcado dinámico: A medida que el camión avanza, la ruta recorrida se desmarca y solo queda la restante
+  const { rutaRecorrida, rutaRestante } = useMemo(() => {
+    if (!routePositions || routePositions.length === 0) {
+      return { rutaRecorrida: null, rutaRestante: null };
+    }
+
+    if (!camionSeleccionado || camionSeleccionado.latitud == null || camionSeleccionado.longitud == null) {
+      return { rutaRecorrida: null, rutaRestante: routePositions };
+    }
+
+    const cLat = camionSeleccionado.latitud;
+    const cLon = camionSeleccionado.longitud;
+
+    // Localizar el vértice más cercano de la ruta a la ubicación actual del camión
+    let closestIdx = 0;
+    let minDist = Infinity;
+    for (let i = 0; i < routePositions.length; i++) {
+      const p = routePositions[i];
+      const dist = (p[0] - cLat) ** 2 + (p[1] - cLon) ** 2;
+      if (dist < minDist) {
+        minDist = dist;
+        closestIdx = i;
+      }
+    }
+
+    // Porción ya recorrida (desmarcada)
+    const pasada = routePositions.slice(0, closestIdx);
+
+    // Porción restante activa: desde la posición del camión hacia el siniestro
+    const restante = [[cLat, cLon], ...routePositions.slice(closestIdx + 1)];
+
+    return {
+      rutaRecorrida: pasada.length > 1 ? pasada : null,
+      rutaRestante: restante.length > 1 ? restante : routePositions
+    };
+  }, [routePositions, camionSeleccionado?.latitud, camionSeleccionado?.longitud]);
+
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <MapContainer
@@ -155,7 +194,7 @@ export default function VisorCartografico({
         zoomControl={false}
         style={{ width: '100%', height: '100%' }}
       >
-        <CameraController center={mapCenter} zoom={mapZoom} bounds={routePositions} />
+        <CameraController center={mapCenter} zoom={mapZoom} bounds={rutaRestante || routePositions} />
 
         {/* Capa Base de Mapas OpenStreetMap con Dark Filter aplicado en CSS */}
         <TileLayer
@@ -164,7 +203,7 @@ export default function VisorCartografico({
           maxZoom={19}
         />
 
-        {/* 1. Capa de Hotspots ML (DBSCAN Clusters Espaciales) */}
+        {/* 1. Capa de Hotspots ML (DBSCAN Clusters Espaciales en Santa Cruz) */}
         {hotspots && hotspots.map((cluster) => (
           <Circle
             key={`cluster-${cluster.cluster_id}`}
@@ -173,17 +212,24 @@ export default function VisorCartografico({
             pathOptions={{
               color: cluster.clasificacion_riesgo === 'CRITICO' ? '#EF4444' : '#F59E0B',
               fillColor: cluster.clasificacion_riesgo === 'CRITICO' ? '#EF4444' : '#F59E0B',
-              fillOpacity: 0.18,
+              fillOpacity: 0.22,
               weight: 2,
               dashArray: '4, 8'
             }}
           >
             <Popup>
-              <div style={{ fontSize: '13px' }}>
+              <div style={{ fontSize: '13px', minWidth: '190px' }}>
                 <span className="badge badge-emergency">HOTSPOT DBSCAN #{cluster.cluster_id}</span>
-                <p style={{ marginTop: '6px', fontWeight: 600 }}>Riesgo: {cluster.clasificacion_riesgo}</p>
-                <p style={{ color: 'var(--text-muted)' }}>Incidentes agrupados: <b>{cluster.cantidad_incidentes}</b></p>
-                <p style={{ color: 'var(--text-dim)', fontSize: '11px' }}>Radio: 1.5 km (Haversine)</p>
+                <h4 style={{ margin: '6px 0 2px 0', fontSize: '12px', color: '#F9FAFB' }}>
+                  {cluster.nombre_zona || `Sector Municipal #${cluster.cluster_id}`}
+                </h4>
+                <p style={{ marginTop: '4px', fontWeight: 600, color: cluster.clasificacion_riesgo === 'CRITICO' ? '#EF4444' : '#F59E0B' }}>
+                  Riesgo: {cluster.clasificacion_riesgo}
+                </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0' }}>
+                  Incidentes recurrentes: <b>{cluster.cantidad_incidentes}</b> siniestros
+                </p>
+                <p style={{ color: 'var(--text-dim)', fontSize: '10px' }}>Radio de propagación: 1.5 km (Haversine)</p>
               </div>
             </Popup>
           </Circle>
@@ -242,20 +288,34 @@ export default function VisorCartografico({
         )}
 
         {/* 4. Trazo de Ruta Óptima Real sobre Calles (CU-04 PostGIS + Red Urbana) */}
-        {routePositions && (
+        {/* Trayecto ya recorrido: se desmarca con un trazo punteado gris tenue */}
+        {rutaRecorrida && (
+          <Polyline
+            positions={rutaRecorrida}
+            pathOptions={{
+              color: '#475569',
+              weight: 3,
+              opacity: 0.25,
+              dashArray: '3, 6'
+            }}
+          />
+        )}
+
+        {/* Trayecto activo restante: brilla en azul fluorescente desde el camión al fuego */}
+        {rutaRestante && (
           <>
             {/* Borde fluorescente exterior */}
             <Polyline
-              positions={routePositions}
+              positions={rutaRestante}
               pathOptions={{
-                color: '#60A5FA',
+                color: '#38BDF8',
                 weight: 8,
-                opacity: 0.4
+                opacity: 0.45
               }}
             />
             {/* Núcleo sólido continuo sobre las calles */}
             <Polyline
-              positions={routePositions}
+              positions={rutaRestante}
               pathOptions={{
                 color: '#2563EB',
                 weight: 4,
@@ -349,4 +409,18 @@ export default function VisorCartografico({
       </MapContainer>
     </div>
   );
+}
+
+/**
+ * Función mount estándar de Module Federation para microfrontends React dentro de Angular / App Shell
+ */
+export function mount(containerElement, props = {}) {
+  if (!containerElement) return;
+  const root = ReactDOM.createRoot(containerElement);
+  root.render(<VisorCartografico {...props} />);
+  return () => {
+    try {
+      root.unmount();
+    } catch (e) {}
+  };
 }
