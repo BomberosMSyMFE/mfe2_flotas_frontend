@@ -737,23 +737,23 @@ export default function EvidenceCapture({
               </div>
 
               {/* Información del Dataset Táctico de 1,200 registros históricos para alimentar el razonamiento */}
-              <div className="ai-metric-box full-width" style={{ backgroundColor: 'rgba(30, 41, 59, 0.7)', border: '1px solid #334155' }}>
+              <div className="ai-metric-box full-width" style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-card)', padding: '10px 12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="metric-box-label" style={{ color: '#38BDF8' }}>
+                  <span className="metric-box-label" style={{ color: 'var(--color-primary)', fontWeight: 800 }}>
                     🧠 RAZONAMIENTO BASADO EN DATASET HISTÓRICO (1,200 SINIESTROS SCZ)
                   </span>
-                  <span style={{ fontSize: '10px', color: '#94A3B8' }}>k-NN &bull; DBSCAN</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="font-tactical-mono">k-NN &bull; DBSCAN</span>
                 </div>
                 <div style={{ marginTop: '6px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <p style={{ margin: 0, color: '#E2E8F0' }}>
+                  <p style={{ margin: 0, color: 'var(--text-primary)' }}>
                     💧 <b>Agua estimada recomendada:</b> {aiInferenceEngine.estimarRecursos(aiAnalysis.categoria, aiAnalysis.severidad).litrosAguaSugeridos.toLocaleString()} Litros
                   </p>
-                  <p style={{ margin: 0, color: '#94A3B8', fontSize: '11px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '11px' }}>
                     📌 Casos similares en Santa Cruz:
                   </p>
                   {aiInferenceEngine.buscarCasosSimilares(textoReporte, 2).map((caso) => (
-                    <div key={caso.id} style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', color: '#CBD5E1' }}>
-                      <b style={{ color: '#F59E0B' }}>[{caso.id}]</b> {caso.distritoMunicipal} ({caso.nombreZona}) - {caso.recursosRequeridos.litrosAguaMinimos}L &bull; {caso.recomendacionTacticaIA.substring(0, 75)}...
+                    <div key={caso.id} style={{ background: '#FFFFFF', border: '1px solid var(--border-color)', padding: '6px 10px', borderRadius: 'var(--radius-btn)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      <b style={{ color: 'var(--color-primary)' }}>[{caso.id}]</b> {caso.distritoMunicipal} ({caso.nombreZona}) - {caso.recursosRequeridos.litrosAguaMinimos}L &bull; {caso.recomendacionTacticaIA.substring(0, 75)}...
                     </div>
                   ))}
                 </div>

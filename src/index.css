@@ -4,51 +4,282 @@
    ========================================================================= */
 
 :root {
-  /* FONDOS Y SUPERFICIES (DARK COMMAND CENTER) */
-  --bg-primary: #0A0E17;
-  --bg-surface: #111827;
-  --bg-surface-hover: #1F2937;
-  --bg-elevated: #1E293B;
-  --border-subtle: #1F2937;
-  --border-focus: #374151;
+  /* =========================================================================
+     1. IDENTIDAD INSTITUCIONAL CUERPO DE BOMBEROS (CONTRATO UI/UX - NATALY)
+     ========================================================================= */
+  --color-primary: #CE2029;            /* Rojo Fuego Oficial Bomberos */
+  --color-primary-hover: #B01820;      /* Rojo Fuego Oscuro (Hover / Active) */
+  --color-primary-light: #FDF2F2;      /* Rojo Tenue para fondos de selección */
+  --color-primary-border: #FCA5A5;
 
-  /* COLORES SEMÁNTICOS DE EMERGENCIA */
-  --color-emergency: #EF4444;
-  --color-emergency-glow: rgba(239, 68, 68, 0.35);
+  --color-secondary: #7A1E24;          /* Granate Táctico Mando / Carmesí */
+  --color-secondary-hover: #5C151A;    /* Granate Profundo */
+  --color-secondary-light: #FBF0F1;
+
+  --color-warning: #FEB000;            /* Ámbar / Amarillo Alerta Fuego */
+  --color-warning-dark: #B45309;       /* Ámbar Oscuro para tipografía */
+  --color-warning-light: #FEF3C7;      /* Fondo suave de advertencia */
+  --color-warning-border: #FDE68A;
+
+  --color-dark: #1A1A1A;               /* Negro Carbón Táctico Onix */
+  --color-dark-surface: #262626;       /* Superficie oscura secundaria */
+  --color-surface-bone: #F5F2EA;       /* Blanco Humo / Marfil Técnico */
+
+    /* =========================================================================
+     2. SUPERFICIES, FONDOS Y ESTRUCTURA (LIMPIO, INSTITUCIONAL COMO NATALY Y JAEL)
+     ========================================================================= */
+  --bg-app: #F8FAFC;                   /* Fondo general base (Slate 50) */
+  --bg-surface: #FFFFFF;               /* Superficie de tarjetas y paneles (Blanco) */
+  --bg-card: #FFFFFF;                  /* Tarjetas blancas limpias */
+  --bg-modal: #FFFFFF;
+  --bg-topbar: #1A1A1A;                /* Barra superior institucional oscura */
+  --bg-sidebar: #FFFFFF;               /* Barra lateral / HUD blanca */
+  --bg-primary: #F8FAFC;               /* Fondo general */
+  --bg-secondary: #FFFFFF;             /* Fondo secundario blanco */
+  --bg-surface-hover: #F1F5F9;         /* Hover gris muy tenue */
+  --bg-elevated: #FFFFFF;              /* Elevados / dropdowns blancos */
+  --bg-card-hover: #F8FAFC;
+
+  --border-color: #E2E8F0;             /* Gris Slate 200 */
+  --border-color-dark: #CBD5E1;        /* Gris Slate 300 */
+  --border-color-focus: #CE2029;       /* Resaltado de inputs en foco */
+  --border-subtle: #E2E8F0;            /* Bordes sutiles institucionales */
+  --border-focus: #CBD5E1;             /* Bordes activos */
+  --border-active: #CE2029;
+
+  /* =========================================================================
+     3. COLORES SEMÁNTICOS OPERATIVOS DE EMERGENCIA
+     ========================================================================= */
+  --color-emergency: #CE2029;          /* Rojo Fuego Oficial (#CE2029) */
+  --color-emergency-glow: rgba(206, 32, 41, 0.25);
   --color-emergency-dark: #991B1B;
+  --color-fire: #FEB000;               /* Fuego / Alerta Ámbar Institucional */
 
-  --color-warning: #F59E0B;
-  --color-warning-glow: rgba(245, 158, 11, 0.35);
-  --color-warning-dark: #B45309;
+  --color-success: #166534;            /* Verde Operativo */
+  --color-success-glow: rgba(22, 101, 52, 0.2);
+  --color-success-dark: #14532D;
 
-  --color-success: #10B981;
-  --color-success-glow: rgba(16, 185, 129, 0.35);
-  --color-success-dark: #065F46;
-
-  --color-tactical-blue: #3B82F6;
-  --color-tactical-blue-glow: rgba(59, 130, 246, 0.35);
+  --color-tactical-blue: #2563EB;       /* Azul Táctico Flota / Ruta Óptima */
+  --color-tactical-blue-glow: rgba(37, 99, 235, 0.2);
   --color-tactical-blue-dark: #1D4ED8;
 
-  --color-hydrant-cyan: #06B6D4;
-  --color-hydrant-cyan-glow: rgba(6, 182, 212, 0.35);
+  --color-hydrant-cyan: #0891B2;       /* Cian Hidrantes y Red de Agua */
+  --color-hydrant-cyan-glow: rgba(8, 145, 178, 0.2);
 
-  --color-ai-purple: #8B5CF6;
-  --color-ai-purple-glow: rgba(139, 92, 246, 0.35);
+  --color-ai-purple: #7C3AED;          /* Púrpura IA / FastMCP */
+  --color-ai-purple-glow: rgba(124, 58, 237, 0.2);
 
-  /* TEXTOS */
-  --text-main: #F9FAFB;
-  --text-muted: #9CA3AF;
-  --text-dim: #6B7280;
-  --text-inverted: #0A0E17;
-
-  /* RADIOS Y SOMBRAS */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 15px var(--color-tactical-blue-glow);
-  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+  /* =========================================================================
+     4. TIPOGRAFÍA Y TEXTO (ALTO CONTRASTE INSTITUCIONAL)
+     ========================================================================= */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+  --text-main: #0F172A;                /* Slate 900 (Charcoal oscuro institucional) */
+  --text-primary: #0F172A;             /* Slate 900 */
+  --text-secondary: #475569;           /* Slate 600 */
+  --text-muted: #64748B;               /* Slate 500 */
+  --text-dim: #94A3B8;                 /* Slate 400 */
+  --text-on-dark: #FFFFFF;             /* Blanco puro sobre fondos oscuros */
+  --text-on-primary: #FFFFFF;          /* Blanco sobre botones rojos */
+
+  /* =========================================================================
+     5. GEOMETRÍA RECTANGULAR PROFESIONAL (CERO EXCESO DE REDONDEADO)
+     ========================================================================= */
+  --radius-btn: 4px;                   /* Rectangular con radio sutil profesional */
+  --radius-input: 4px;
+  --radius-badge: 3px;
+  --radius-card: 6px;
+  --radius-modal: 6px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* =========================================================================
+     6. SEMÁFORO DE RIESGO OPERATIVO (SALA DE CRISIS)
+     ========================================================================= */
+  --badge-critico-text: #991B1B;
+  --badge-critico-bg: #FEE2E2;
+  --badge-critico-border: #FCA5A5;
+
+  --badge-alerta-text: #B45309;
+  --badge-alerta-bg: #FEF3C7;
+  --badge-alerta-border: #FDE68A;
+
+  --badge-controlado-text: #166534;
+  --badge-controlado-bg: #DCFCE7;
+  --badge-controlado-border: #86EFAC;
+
+  --badge-neutral-text: #334155;
+  --badge-neutral-bg: #F1F5F9;
+  --badge-neutral-border: #CBD5E1;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 15px var(--color-tactical-blue-glow);
+}
+
+/* ===========================================================================
+   CLASES UTILITARIAS INSTITUCIONALES (GUIA_DISENO_SISTEMA & THEME-VARIABLES)
+   =========================================================================== */
+
+/* --- BOTONES PROFESIONALES RECTANGULARES --- */
+.btn-fire-primary {
+  background-color: var(--color-primary);
+  color: var(--text-on-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-btn);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.btn-fire-primary:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 0 10px rgba(206, 32, 41, 0.4);
+}
+.btn-fire-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-fire-secondary {
+  background-color: var(--color-secondary);
+  color: var(--text-on-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-btn);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+.btn-fire-secondary:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.btn-fire-outline {
+  background-color: #FFFFFF;
+  color: var(--color-dark);
+  border: 1px solid var(--border-color-dark);
+  border-radius: var(--radius-btn);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+.btn-fire-outline:hover {
+  background-color: var(--bg-app);
+  border-color: var(--color-dark);
+}
+
+.btn-fire-danger {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-btn);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+.btn-fire-danger:hover {
+  background-color: #FEE2E2;
+}
+
+/* --- BADGES SEMAFÓRICOS COMPACTOS --- */
+.badge-fire {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-badge);
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.badge-fire-critical {
+  color: var(--badge-critico-text);
+  background-color: var(--badge-critico-bg);
+  border: 1px solid var(--badge-critico-border);
+}
+.badge-fire-warning {
+  color: var(--badge-alerta-text);
+  background-color: var(--badge-alerta-bg);
+  border: 1px solid var(--badge-alerta-border);
+}
+.badge-fire-success {
+  color: var(--badge-controlado-text);
+  background-color: var(--badge-controlado-bg);
+  border: 1px solid var(--badge-controlado-border);
+}
+.badge-fire-neutral {
+  color: var(--badge-neutral-text);
+  background-color: var(--badge-neutral-bg);
+  border: 1px solid var(--badge-neutral-border);
+}
+
+/* --- VALIDACIONES VISUALES EN LETRAS ROJAS --- */
+.field-error-text {
+  font-size: 12px;
+  color: #DC2626;
+  margin-top: 4px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-error {
+  border-color: #DC2626 !important;
+  background-color: #FEF2F2 !important;
+}
+
+.modal-alert-danger {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+  padding: 10px 14px;
+  border-radius: var(--radius-btn);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- TIPOGRAFÍA TELEMETRÍA (MONOSPACE) --- */
+.font-tactical-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 * {
@@ -82,16 +313,15 @@ body {
 }
 
 .leaflet-popup-content-wrapper {
-  background: rgba(17, 24, 39, 0.95) !important;
-  color: var(--text-main) !important;
-  border: 1px solid var(--border-focus) !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
-  backdrop-filter: blur(8px) !important;
+  background: #FFFFFF !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
 }
 
 .leaflet-popup-tip {
-  background: rgba(17, 24, 39, 0.95) !important;
+  background: #FFFFFF !important;
 }
 
 .leaflet-popup-content {
@@ -220,32 +450,7 @@ body {
   color: var(--color-ai-purple);
   border: 1px solid rgba(139, 92, 246, 0.3);
 }
-/* GUIA_DISENO_SISTEMA.md - Centro de Comando Táctico y Terminal Móvil Cabina PWA */
-:root {
-  --bg-primary: #0A0E17;
-  --bg-secondary: #111827;
-  --bg-card: #1E293B;
-  --bg-card-hover: #26354A;
-  --border-subtle: #334155;
-  --border-active: #475569;
-  
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  
-  --color-emergency: #EF4444;
-  --color-emergency-glow: rgba(239, 68, 68, 0.4);
-  --color-fire: #F97316;
-  --color-tactical-blue: #3B82F6;
-  --color-tactical-glow: rgba(59, 130, 246, 0.35);
-  --color-hydrant-cyan: #06B6D4;
-  --color-cyan-glow: rgba(6, 182, 212, 0.35);
-  --color-success: #10B981;
-  --color-success-glow: rgba(16, 185, 129, 0.35);
-
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-}
+/* Utilidades cabina sincronizadas con tokens institucionales */
 
 * {
   box-sizing: border-box;
@@ -289,12 +494,12 @@ body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   padding: 14px 20px;
   margin-bottom: 14px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-card);
   gap: 12px;
 }
 
@@ -480,12 +685,12 @@ body {
 
 /* Tarjetas Tácticas */
 .tactical-card {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-card);
 }
 
 .card-header {
@@ -946,7 +1151,7 @@ body {
 .btn-unified-action {
   width: 100%;
   padding: 18px 24px;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);

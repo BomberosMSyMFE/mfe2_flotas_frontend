@@ -140,14 +140,13 @@ export default function TacticalHud({
       style={{
         width: '400px',
         height: '100%',
-        backgroundColor: 'rgba(17, 24, 39, 0.96)',
-        backdropFilter: 'blur(16px)',
-        borderLeft: '1px solid var(--border-subtle)',
+        backgroundColor: '#FFFFFF',
+        borderLeft: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        color: 'var(--text-main)',
+        color: 'var(--text-primary)',
         zIndex: 1000,
-        boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.7)',
+        boxShadow: '-2px 0 12px rgba(0, 0, 0, 0.06)',
         overflowY: 'auto',
       }}
     >
@@ -155,7 +154,8 @@ export default function TacticalHud({
       <div
         style={{
           padding: '16px 20px',
-          borderBottom: '1px solid var(--border-subtle)',
+          backgroundColor: '#F8FAFC',
+          borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
@@ -163,12 +163,12 @@ export default function TacticalHud({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <span className="badge badge-tactical">CENTRO DE DESPACHO GIS</span>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>
+            <span className="badge-fire badge-fire-critical">CENTRO DE DESPACHO GIS</span>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginTop: '4px', letterSpacing: '0.02em' }}>
               Control de Flotas y Rutas
             </h3>
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--color-success)', fontWeight: 700 }}>
+          <span className="badge-fire badge-fire-success">
             ● EN LÍNEA
           </span>
         </div>
@@ -178,25 +178,17 @@ export default function TacticalHud({
           <button
             onClick={() => onActualizarFlotas && onActualizarFlotas()}
             disabled={isRefreshing}
+            className="btn-fire-outline"
             style={{
               flex: 1,
-              backgroundColor: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid var(--color-tactical-blue)',
-              color: '#93C5FD',
-              borderRadius: 'var(--radius-sm)',
-              padding: '7px 12px',
+              padding: '6px 12px',
               fontSize: '11px',
               fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
             }}
           >
             {isRefreshing ? '🔄 ACTUALIZANDO...' : '🔄 ACTUALIZAR FLOTAS'}
           </button>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="font-tactical-mono">
             Auto: cada 10s
           </span>
         </div>
@@ -208,21 +200,22 @@ export default function TacticalHud({
           <div
             style={{
               padding: '10px 14px',
-              borderRadius: 'var(--radius-sm)',
+              borderRadius: 'var(--radius-btn)',
               fontSize: '12px',
+              fontWeight: 600,
               backgroundColor:
                 mensajeEstado.tipo === 'exito'
-                  ? 'rgba(16, 185, 129, 0.15)'
-                  : 'rgba(239, 68, 68, 0.15)',
+                  ? 'var(--badge-controlado-bg)'
+                  : 'var(--badge-critico-bg)',
               border: `1px solid ${
                 mensajeEstado.tipo === 'exito'
-                  ? 'var(--color-success)'
-                  : 'var(--color-emergency)'
+                  ? 'var(--badge-controlado-border)'
+                  : 'var(--badge-critico-border)'
               }`,
               color:
                 mensajeEstado.tipo === 'exito'
-                  ? 'var(--color-success)'
-                  : 'var(--color-emergency)',
+                  ? 'var(--badge-controlado-text)'
+                  : 'var(--badge-critico-text)',
             }}
           >
             {mensajeEstado.texto}
@@ -233,28 +226,20 @@ export default function TacticalHud({
         <div
           style={{
             padding: '12px 14px',
-            backgroundColor: 'rgba(239, 68, 68, 0.08)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            backgroundColor: 'var(--color-primary-light)',
+            borderRadius: 'var(--radius-card)',
+            border: '1px solid var(--color-primary-border)',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#FCA5A5', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-primary)', fontWeight: 700, letterSpacing: '0.05em' }}>
               🔔 NOTIFICACIONES PUSH MÓVIL
             </span>
             <span
-              style={{
-                fontSize: '10px',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                backgroundColor: pushHabilitado ? 'rgba(34, 197, 94, 0.2)' : 'rgba(156, 163, 175, 0.2)',
-                color: pushHabilitado ? '#4ADE80' : '#9CA3AF',
-                fontWeight: 700,
-                border: `1px solid ${pushHabilitado ? '#22C55E' : '#6B7280'}`,
-              }}
+              className={`badge-fire ${pushHabilitado ? 'badge-fire-success' : 'badge-fire-neutral'}`}
             >
               {pushHabilitado ? '● PUSH ACTIVO' : '○ NO REGISTRADO'}
             </span>
@@ -264,21 +249,14 @@ export default function TacticalHud({
             <button
               onClick={handleSimularDespachoPush}
               disabled={cargandoAccion}
+              className="btn-fire-primary"
               style={{
                 width: '100%',
-                backgroundColor: 'rgba(220, 38, 38, 0.4)',
-                border: '1px solid #EF4444',
-                color: '#FFFFFF',
-                borderRadius: 'var(--radius-sm)',
-                padding: '10px 12px',
+                padding: '10px 14px',
                 fontSize: '11px',
                 fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                boxShadow: '0 0 12px rgba(239, 68, 68, 0.35)',
+                letterSpacing: '0.04em',
+                boxShadow: '0 0 12px rgba(206, 32, 41, 0.4)',
               }}
             >
               {cargandoAccion ? '📡 ENVIANDO ALERTA A FIREBASE...' : '🚨 PROBAR DESPACHO PUSH A MI CELULAR'}
@@ -287,20 +265,12 @@ export default function TacticalHud({
             <button
               onClick={handleActivarNotificaciones}
               disabled={activandoPush}
+              className="btn-fire-outline"
               style={{
                 width: '100%',
-                backgroundColor: pushHabilitado ? 'rgba(55, 65, 81, 0.5)' : 'rgba(239, 68, 68, 0.25)',
-                border: pushHabilitado ? '1px solid #4B5563' : '1px solid var(--color-danger)',
-                color: pushHabilitado ? '#D1D5DB' : '#FECACA',
-                borderRadius: 'var(--radius-sm)',
                 padding: '8px 12px',
                 fontSize: '10px',
                 fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
               }}
             >
               {activandoPush
@@ -318,10 +288,10 @@ export default function TacticalHud({
         {/* 1. SELECCIÓN DE UNIDAD (SINCRONIZACIÓN BIDIRECCIONAL CON EL MAPA) */}
         <div
           style={{
-            backgroundColor: 'var(--bg-elevated)',
-            borderRadius: 'var(--radius-md)',
+            backgroundColor: '#FFFFFF', boxShadow: 'var(--shadow-card)',
+            borderRadius: 'var(--radius-card)',
             padding: '14px',
-            border: '1px solid var(--border-focus)',
+            border: '1px solid var(--border-color)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -329,12 +299,12 @@ export default function TacticalHud({
               UNIDAD ACTIVA EN FOCO:
             </span>
             <span
-              className={`badge ${
+              className={`badge-fire ${
                 camionActivo?.estado === 'DISPONIBLE'
-                  ? 'badge-success'
+                  ? 'badge-fire-success'
                   : (camionActivo?.estado === 'BLOQUEADO_SAGA' || camionActivo?.estado === 'RESERVADO_SAGA')
-                  ? 'badge-purple'
-                  : 'badge-tactical'
+                  ? 'badge-fire-warning'
+                  : 'badge-fire-critical'
               }`}
             >
               {camionActivo?.estado || 'DESCONOCIDO'}
@@ -350,10 +320,10 @@ export default function TacticalHud({
             onChange={handleDropdownChange}
             style={{
               width: '100%',
-              backgroundColor: 'var(--bg-surface)',
-              color: 'var(--text-main)',
-              border: '1px solid var(--border-focus)',
-              borderRadius: 'var(--radius-sm)',
+              backgroundColor: '#FFFFFF',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-input)',
               padding: '8px 12px',
               fontSize: '12px',
               marginTop: '8px',
@@ -374,7 +344,7 @@ export default function TacticalHud({
               style={{
                 marginTop: '10px',
                 padding: '10px',
-                backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-sm)',
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
@@ -411,17 +381,17 @@ export default function TacticalHud({
         {/* 2. NAVEGACIÓN Y RUTA ÓPTIMA VIAL (CU-04) */}
         <div
           style={{
-            backgroundColor: 'var(--bg-elevated)',
-            borderRadius: 'var(--radius-md)',
+            backgroundColor: '#FFFFFF', boxShadow: 'var(--shadow-card)',
+            borderRadius: 'var(--radius-card)',
             padding: '14px',
-            border: '1px solid var(--border-focus)',
+            border: '1px solid var(--border-color)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               Ruta Vial Óptima e Hidrantes (CU-04)
             </span>
-            <span className="badge badge-cyan">POSTGIS</span>
+            <span className="badge-fire badge-fire-neutral">POSTGIS</span>
           </div>
 
           <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
@@ -431,21 +401,18 @@ export default function TacticalHud({
 
           <button
             onClick={() => onCalcularRuta && onCalcularRuta(camionActivoId)}
+            className="btn-fire-primary"
             style={{
               width: '100%',
-              backgroundColor: 'var(--color-tactical-blue)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 'var(--radius-sm)',
               padding: '10px',
-              fontSize: '12px',
-              fontWeight: 700,
+              fontSize: '11px',
+              fontWeight: 800,
               marginTop: '10px',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
+              letterSpacing: '0.03em',
             }}
           >
             🗺️ TRAZAR RUTA ÓPTIMA DE {camionActivoId}
@@ -456,31 +423,32 @@ export default function TacticalHud({
               style={{
                 marginTop: '10px',
                 padding: '10px',
-                backgroundColor: 'var(--bg-surface)',
-                borderRadius: 'var(--radius-sm)',
+                backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-card)',
+                border: '1px solid var(--border-color)',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Distancia vial real:</span>
-                <span className="font-mono" style={{ fontWeight: 700, color: 'var(--color-tactical-blue)' }}>
+                <span className="font-tactical-mono" style={{ fontWeight: 700, color: 'var(--color-primary)', fontWeight: 700 }}>
                   {rutaInfo.distanciaTotalMetros} metros
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '4px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Tiempo estimado (ETA):</span>
-                <span className="font-mono" style={{ fontWeight: 700 }}>
+                <span className="font-tactical-mono" style={{ fontWeight: 700 }}>
                   {Math.round((rutaInfo.duracionEstimadaSegundos / 60) * 10) / 10} min (48 km/h)
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', marginTop: '4px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Hidrantes en Zona Cero:</span>
-                <span className="badge badge-cyan" title="Hidrantes operativos en la red en un radio de 500m del siniestro (destino)">
-                  {rutaInfo.hidrantesCercanos?.length || 0} Operativos a &lt;500m del Siniestro
+                <span className="badge-fire badge-fire-neutral" title="Hidrantes operativos en la red en un radio de 500m del siniestro (destino)">
+                  {rutaInfo.hidrantesCercanos?.length || 0} Operativos &lt;500m
                 </span>
               </div>
               {rutaInfo.hidrantesCercanos && rutaInfo.hidrantesCercanos.length > 0 && (
                 <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '4px', textAlign: 'right' }}>
-                  💧 Abastecimiento en destino: {rutaInfo.hidrantesCercanos.map(h => `${h.id} (${h.distanciaMetrosAlSiniestro || 250}m)`).join(', ')}
+                  💧 Abastecimiento: {rutaInfo.hidrantesCercanos.map(h => `${h.id} (${h.distanciaMetrosAlSiniestro || 250}m)`).join(', ')}
                 </div>
               )}
             </div>
@@ -490,16 +458,16 @@ export default function TacticalHud({
         {/* 3. ORQUESTACIÓN SAGA (PASO 1 Y COMPENSACIÓN - CU-03) */}
         <div
           style={{
-            backgroundColor: 'var(--bg-elevated)',
-            borderRadius: 'var(--radius-md)',
+            backgroundColor: '#FFFFFF', boxShadow: 'var(--shadow-card)',
+            borderRadius: 'var(--radius-card)',
             padding: '14px',
-            border: '1px solid var(--border-focus)',
-            borderTop: '3px solid var(--color-ai-purple)',
+            border: '1px solid var(--border-color)',
+            borderTop: '3px solid var(--color-primary)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="badge badge-purple">ORQUESTACIÓN SAGA (CU-03)</span>
-            <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>Transaccional</span>
+            <span className="badge-fire badge-fire-critical">ORQUESTACIÓN SAGA (CU-03)</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-dim)' }} className="font-tactical-mono">Transaccional Multi-Cloud</span>
           </div>
 
           <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
@@ -517,15 +485,11 @@ export default function TacticalHud({
                   `Paso 1 SAGA: Camión ${camionActivoId} reservado atómicamente.`
                 )
               }
+              className="btn-fire-primary"
               style={{
-                backgroundColor: 'var(--color-success)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--radius-sm)',
                 padding: '9px 10px',
                 fontSize: '11px',
-                fontWeight: 700,
-                cursor: 'pointer',
+                fontWeight: 800,
                 textAlign: 'center',
               }}
               title="Reserva este camión en la base de datos de flotas (estado RESERVADO_SAGA) para que ningún otro despacho lo use."
@@ -542,15 +506,11 @@ export default function TacticalHud({
                   `SAGA Compensación: Camión ${camionActivoId} liberado (Rollback exitoso).`
                 )
               }
+              className="btn-fire-danger"
               style={{
-                backgroundColor: 'transparent',
-                color: 'var(--color-emergency)',
-                border: '1px solid var(--color-emergency)',
-                borderRadius: 'var(--radius-sm)',
                 padding: '9px 10px',
                 fontSize: '11px',
                 fontWeight: 700,
-                cursor: 'pointer',
                 textAlign: 'center',
               }}
               title="Si falla otro microservicio (ej. inventario o personal), el orquestador revierte la reserva devolviendo el camión a DISPONIBLE."
@@ -563,17 +523,17 @@ export default function TacticalHud({
         {/* 4. SIMULADOR DE TELEMETRÍA IoT (CU-05) */}
         <div
           style={{
-            backgroundColor: 'var(--bg-elevated)',
-            borderRadius: 'var(--radius-md)',
+            backgroundColor: '#FFFFFF', boxShadow: 'var(--shadow-card)',
+            borderRadius: 'var(--radius-card)',
             padding: '14px',
-            border: '1px solid var(--border-focus)',
+            border: '1px solid var(--border-color)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
               Telemetría IoT en Vivo (CU-05)
             </span>
-            <span className="badge badge-tactical">4G / GPS</span>
+            <span className="badge-fire badge-fire-neutral">4G / GPS</span>
           </div>
 
           <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
@@ -584,17 +544,13 @@ export default function TacticalHud({
 
           <button
             onClick={() => onSimularTelemetria && onSimularTelemetria(camionActivoId)}
+            className="btn-fire-outline"
             style={{
               width: '100%',
-              backgroundColor: 'rgba(6, 182, 212, 0.15)',
-              color: 'var(--color-hydrant-cyan)',
-              border: '1px solid var(--color-hydrant-cyan)',
-              borderRadius: 'var(--radius-sm)',
               padding: '9px',
               fontSize: '11px',
               fontWeight: 700,
               marginTop: '8px',
-              cursor: 'pointer',
             }}
           >
             📡 EMITIR PING DE TELEMETRÍA (AVANZAR EN CALLE)
@@ -603,20 +559,21 @@ export default function TacticalHud({
 
         {/* 5. CAPA DE HOTSPOTS ESPACIALES (DBSCAN ML) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
             Clusters de Incendios (DBSCAN ML):
           </span>
           <button
             onClick={toggleHotspots}
             style={{
-              backgroundColor: mostrarHotspots ? 'rgba(239, 68, 68, 0.2)' : 'var(--bg-elevated)',
-              color: mostrarHotspots ? 'var(--color-emergency)' : 'var(--text-muted)',
-              border: `1px solid ${mostrarHotspots ? 'var(--color-emergency)' : 'var(--border-focus)'}`,
-              borderRadius: 'var(--radius-sm)',
+              backgroundColor: mostrarHotspots ? 'rgba(206, 32, 41, 0.15)' : 'var(--bg-elevated)',
+              color: mostrarHotspots ? 'var(--color-primary-border)' : 'var(--text-muted)',
+              border: `1px solid ${mostrarHotspots ? 'var(--color-primary)' : 'var(--border-subtle)'}`,
+              borderRadius: 'var(--radius-btn)',
               padding: '4px 10px',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
+              transition: 'all 0.2s',
             }}
           >
             {mostrarHotspots ? '● VISIBLES' : '○ OCULTOS'}
@@ -630,7 +587,7 @@ export default function TacticalHud({
               fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.5px',
+              letterSpacing: '0.05em',
               color: 'var(--text-muted)',
             }}
           >
@@ -646,27 +603,28 @@ export default function TacticalHud({
                   onClick={() => onSeleccionarCamion && onSeleccionarCamion(u)}
                   style={{
                     padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: esSeleccionado ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-surface)',
+                    borderRadius: 'var(--radius-card)',
+                    backgroundColor: esSeleccionado ? 'var(--color-primary-light)' : '#FFFFFF',
                     border: `1px solid ${
-                      esSeleccionado ? 'var(--color-tactical-blue)' : 'var(--border-subtle)'
+                      esSeleccionado ? 'var(--color-primary)' : 'var(--border-color)'
                     }`,
+                    boxShadow: 'var(--shadow-sm)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <b style={{ fontSize: '13px' }}>
-                      {esSeleccionado ? '👉 ' : ''}
+                      {esSeleccionado ? '🚒 ' : ''}
                       {u.id}
                     </b>
                     <span
-                      className={`badge ${
+                      className={`badge-fire ${
                         u.estado === 'DISPONIBLE'
-                          ? 'badge-success'
-                          : u.estado === 'RESERVADO_SAGA'
-                          ? 'badge-tactical'
-                          : 'badge-emergency'
+                          ? 'badge-fire-success'
+                          : (u.estado === 'RESERVADO_SAGA' || u.estado === 'BLOQUEADO_SAGA')
+                          ? 'badge-fire-warning'
+                          : 'badge-fire-critical'
                       }`}
                     >
                       {u.estado}
@@ -682,7 +640,9 @@ export default function TacticalHud({
                     }}
                   >
                     <span>{u.tipo}</span>
-                    <span className="font-mono">{u.litrosAguaActual} L</span>
+                    <span className="font-tactical-mono" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+                      {u.litrosAguaActual} L
+                    </span>
                   </div>
                 </div>
               );

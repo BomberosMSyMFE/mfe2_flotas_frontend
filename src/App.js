@@ -393,8 +393,8 @@ export default function App() {
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: 'var(--bg-primary)',
-      color: 'var(--text-main)',
+      backgroundColor: 'var(--bg-app)',
+      color: 'var(--text-primary)',
       overflow: 'hidden',
       fontFamily: 'var(--font-sans)',
     }}>
@@ -402,13 +402,12 @@ export default function App() {
       {/* 1. BARRA SUPERIOR TOTALMENTE RESPONSIVA (MÓVIL Y ESCRITORIO)  */}
       {/* ============================================================== */}
       <header style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.98)',
-        backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid var(--border-subtle)',
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 1100,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+        boxShadow: 'var(--shadow-sm)',
       }}>
         {/* FILA 1: IDENTIDAD, SELECTOR DE UNIDAD Y ESTADO */}
         <div style={{
@@ -423,9 +422,9 @@ export default function App() {
             <div style={{
               width: isMobile ? '32px' : '38px',
               height: isMobile ? '32px' : '38px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(239, 68, 68, 0.15)',
-              border: '1.5px solid var(--color-emergency)',
+              borderRadius: 'var(--radius-btn)',
+              backgroundColor: 'rgba(206, 32, 41, 0.15)',
+              border: '1.5px solid var(--color-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -443,16 +442,17 @@ export default function App() {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  letterSpacing: '0.02em',
                 }}>
-                  {isMobile ? 'CABINA BOMBEROS' : 'CABINA TÁCTICA & VISOR GIS'}
+                  {isMobile ? 'CABINA BOMBEROS' : 'CENTRO TÁCTICO & VISOR GIS'}
                 </h1>
-                <span className="badge badge-emergency" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                <span className="badge-fire badge-fire-critical" style={{ fontSize: '9px', padding: '1px 5px' }}>
                   SCZ
                 </span>
               </div>
               {!isMobile && (
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '1px 0 0 0' }}>
-                  Santa Cruz de la Sierra &bull; Edge AI Offline &bull; PostGIS Routing
+                  Santa Cruz de la Sierra &bull; Edge AI Offline &bull; PostGIS Routing &bull; SAGA Multi-Cloud
                 </p>
               )}
             </div>
@@ -462,10 +462,10 @@ export default function App() {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+            backgroundColor: '#F8FAFC',
             padding: '3px 8px',
-            borderRadius: '6px',
-            border: '1px solid var(--color-tactical-blue)',
+            borderRadius: 'var(--radius-input)',
+            border: '1px solid var(--border-color)',
             flexShrink: 0,
           }}>
             <select
@@ -473,7 +473,7 @@ export default function App() {
               onChange={(e) => handleCambiarUnidad(e.target.value)}
               style={{
                 backgroundColor: 'transparent',
-                color: '#93C5FD',
+                color: 'var(--text-primary)',
                 border: 'none',
                 fontSize: isMobile ? '12px' : '13px',
                 fontWeight: 800,
@@ -484,7 +484,7 @@ export default function App() {
               title="Cambiar la unidad de cabina asignada"
             >
               {unidades.map((u) => (
-                <option key={u.id} value={u.id} style={{ backgroundColor: '#0F172A', color: '#F8FAFC' }}>
+                <option key={u.id} value={u.id} style={{ backgroundColor: '#1A1A1A', color: 'var(--text-primary)' }}>
                   🚒 {u.id} {isMobile ? '' : `| ${u.placa} (${u.tipo})`}
                 </option>
               ))}
@@ -493,15 +493,10 @@ export default function App() {
 
           {/* ESTADO DE CONEXIÓN Y RELOJ */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-            <div style={{
+            <div className={`badge-fire ${isOnline ? 'badge-fire-success' : 'badge-fire-critical'}`} style={{
               fontSize: '11px',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700,
-              padding: '3px 6px',
-              borderRadius: '4px',
-              backgroundColor: isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)',
-              border: isOnline ? '1px solid var(--color-success)' : '1px solid var(--color-emergency)',
-              color: isOnline ? '#34D399' : '#F87171',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -514,10 +509,11 @@ export default function App() {
               fontSize: '11px',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'var(--bg-app)',
+              border: '1px solid var(--border-color)',
               padding: '3px 6px',
-              borderRadius: '4px',
-              color: 'var(--text-muted)',
+              borderRadius: 'var(--radius-badge)',
+              color: 'var(--text-secondary)',
             }}>
               {currentTime.slice(0, 5) || '--:--'}
             </div>
@@ -541,14 +537,15 @@ export default function App() {
               onClick={() => setActiveTab('CABINA')}
               style={{
                 padding: isMobile ? '5px 10px' : '6px 12px',
-                borderRadius: '6px',
+                borderRadius: 'var(--radius-btn)',
                 fontSize: isMobile ? '11px' : '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                border: activeTab === 'CABINA' ? '1px solid var(--color-tactical-blue)' : '1px solid transparent',
-                backgroundColor: activeTab === 'CABINA' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                color: activeTab === 'CABINA' ? '#93C5FD' : 'var(--text-muted)',
+                border: activeTab === 'CABINA' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                backgroundColor: activeTab === 'CABINA' ? 'rgba(206, 32, 41, 0.25)' : 'transparent',
+                color: activeTab === 'CABINA' ? 'var(--color-primary-border)' : 'var(--text-muted)',
                 whiteSpace: 'nowrap',
+                letterSpacing: '0.02em',
               }}
             >
               🚒 CABINA & RUTA
@@ -558,14 +555,15 @@ export default function App() {
               onClick={() => setActiveTab('MACRO')}
               style={{
                 padding: isMobile ? '5px 10px' : '6px 12px',
-                borderRadius: '6px',
+                borderRadius: 'var(--radius-btn)',
                 fontSize: isMobile ? '11px' : '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                border: activeTab === 'MACRO' ? '1px solid var(--color-ai-purple)' : '1px solid transparent',
-                backgroundColor: activeTab === 'MACRO' ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                color: activeTab === 'MACRO' ? '#C4B5FD' : 'var(--text-muted)',
+                border: activeTab === 'MACRO' ? '1px solid var(--color-secondary)' : '1px solid transparent',
+                backgroundColor: activeTab === 'MACRO' ? 'rgba(122, 30, 36, 0.35)' : 'transparent',
+                color: activeTab === 'MACRO' ? '#FECACA' : 'var(--text-muted)',
                 whiteSpace: 'nowrap',
+                letterSpacing: '0.02em',
               }}
             >
               🌐 FLOTAS MACRO
@@ -575,28 +573,25 @@ export default function App() {
               onClick={() => setActiveTab('OUTBOX')}
               style={{
                 padding: isMobile ? '5px 10px' : '6px 12px',
-                borderRadius: '6px',
+                borderRadius: 'var(--radius-btn)',
                 fontSize: isMobile ? '11px' : '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 border: activeTab === 'OUTBOX' ? '1px solid var(--color-warning)' : '1px solid transparent',
-                backgroundColor: activeTab === 'OUTBOX' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                color: activeTab === 'OUTBOX' ? '#FCD34D' : 'var(--text-muted)',
+                backgroundColor: activeTab === 'OUTBOX' ? 'rgba(254, 176, 0, 0.2)' : 'transparent',
+                color: activeTab === 'OUTBOX' ? '#FEF08A' : 'var(--text-muted)',
                 whiteSpace: 'nowrap',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
+                letterSpacing: '0.02em',
               }}
             >
               📦 OUTBOX
               {pendingCount > 0 && (
-                <span style={{
-                  backgroundColor: 'var(--color-emergency)',
-                  color: '#FFFFFF',
-                  borderRadius: '10px',
+                <span className="badge-fire badge-fire-critical" style={{
                   padding: '1px 5px',
                   fontSize: '9px',
-                  fontFamily: 'var(--font-mono)',
                 }}>
                   {pendingCount}
                 </span>
@@ -609,13 +604,13 @@ export default function App() {
             <button
               onClick={handleToggleSimulatedOffline}
               style={{
-                padding: '4px 8px',
-                borderRadius: '5px',
+                padding: '5px 9px',
+                borderRadius: 'var(--radius-btn)',
                 fontSize: '11px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                border: isSimulatingOffline ? '1px solid var(--color-emergency)' : '1px solid var(--border-subtle)',
-                backgroundColor: isSimulatingOffline ? 'var(--color-emergency)' : 'rgba(255, 255, 255, 0.06)',
+                border: isSimulatingOffline ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                backgroundColor: isSimulatingOffline ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.06)',
                 color: isSimulatingOffline ? '#FFFFFF' : '#CBD5E1',
                 whiteSpace: 'nowrap',
               }}
@@ -626,15 +621,11 @@ export default function App() {
 
             <button
               onClick={handleInstallApp}
+              className="btn-fire-primary"
               style={{
-                padding: '4px 8px',
-                borderRadius: '5px',
+                padding: '5px 9px',
                 fontSize: '11px',
                 fontWeight: 700,
-                cursor: 'pointer',
-                border: '1px solid #10B981',
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                color: '#6EE7B7',
                 whiteSpace: 'nowrap',
               }}
               title="Instalar en Celular o Tablet"
@@ -658,8 +649,8 @@ export default function App() {
             {isMobile && (
               <div style={{
                 display: 'flex',
-                backgroundColor: '#0F172A',
-                borderBottom: '1px solid var(--border-subtle)',
+                backgroundColor: '#FFFFFF',
+                borderBottom: '1px solid var(--border-color)',
                 padding: '6px 8px',
                 gap: '8px',
                 zIndex: 1000,
@@ -673,9 +664,9 @@ export default function App() {
                     fontSize: '12px',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    border: mobileCabinaView === 'MAPA' ? '2px solid var(--color-tactical-blue)' : '1px solid var(--border-subtle)',
-                    backgroundColor: mobileCabinaView === 'MAPA' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(30, 41, 59, 0.5)',
-                    color: mobileCabinaView === 'MAPA' ? '#93C5FD' : 'var(--text-muted)',
+                    border: mobileCabinaView === 'MAPA' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                    backgroundColor: mobileCabinaView === 'MAPA' ? 'var(--color-primary-light)' : '#FFFFFF',
+                    color: mobileCabinaView === 'MAPA' ? 'var(--color-primary)' : 'var(--text-secondary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -694,9 +685,9 @@ export default function App() {
                     fontSize: '12px',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    border: mobileCabinaView === 'CABINA' ? '2px solid var(--color-emergency)' : '1px solid var(--border-subtle)',
-                    backgroundColor: mobileCabinaView === 'CABINA' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(30, 41, 59, 0.5)',
-                    color: mobileCabinaView === 'CABINA' ? '#FCA5A5' : 'var(--text-muted)',
+                    border: mobileCabinaView === 'CABINA' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                    backgroundColor: mobileCabinaView === 'CABINA' ? 'var(--color-primary-light)' : '#FFFFFF',
+                    color: mobileCabinaView === 'CABINA' ? 'var(--color-primary)' : 'var(--text-secondary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -725,12 +716,12 @@ export default function App() {
                   left: '10px',
                   right: '10px',
                   zIndex: 999,
-                  backgroundColor: 'rgba(15, 23, 42, 0.94)',
-                  backdropFilter: 'blur(12px)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.97)',
+                  backdropFilter: 'blur(8px)',
                   padding: isMobile ? '8px 12px' : '10px 16px',
                   borderRadius: '10px',
-                  border: '1px solid var(--border-subtle)',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '6px',
@@ -739,7 +730,7 @@ export default function App() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '16px' }}>🧭</span>
-                      <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 800, color: '#F8FAFC' }}>
+                      <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 800, color: 'var(--text-primary)' }}>
                         RUTA: {camionSeleccionado?.id || 'B-04'} ➔ {incidenteActivo.incidenteId}
                       </span>
                     </div>
@@ -754,13 +745,14 @@ export default function App() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '4px 8px',
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    borderRadius: '6px',
+                    backgroundColor: 'var(--bg-app)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm)',
                     fontSize: '11px',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Distancia:</span>
-                      <strong style={{ color: '#60A5FA', fontFamily: 'var(--font-mono)' }}>
+                      <strong style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-mono)' }}>
                         {distanciaKmStr} km
                       </strong>
                     </div>
@@ -786,9 +778,9 @@ export default function App() {
                       onClick={() => handleCalcularRuta(camionSeleccionado?.id)}
                       style={{
                         flex: 1,
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        border: '1px solid var(--color-tactical-blue)',
-                        color: '#93C5FD',
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid var(--border-color-dark)',
+                        color: 'var(--color-dark)',
                         borderRadius: '6px',
                         padding: '6px 8px',
                         fontSize: isMobile ? '10px' : '11px',
@@ -804,9 +796,9 @@ export default function App() {
                       onClick={() => handleSimularTelemetria(camionSeleccionado?.id)}
                       style={{
                         flex: 1,
-                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        backgroundColor: 'var(--badge-controlado-bg)',
                         border: '1px solid var(--color-success)',
-                        color: '#6EE7B7',
+                        color: 'var(--badge-controlado-text)',
                         borderRadius: '6px',
                         padding: '6px 8px',
                         fontSize: isMobile ? '10px' : '11px',
@@ -861,8 +853,8 @@ export default function App() {
                 maxWidth: isMobile ? '100%' : '540px',
                 minWidth: isMobile ? '100%' : '380px',
                 height: '100%',
-                backgroundColor: 'rgba(15, 23, 42, 0.98)',
-                borderLeft: isMobile ? 'none' : '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-app)',
+                borderLeft: isMobile ? 'none' : '1px solid var(--border-color)',
                 overflowY: 'auto',
                 WebkitOverflowScrolling: 'touch',
                 display: 'flex',
@@ -875,9 +867,9 @@ export default function App() {
                   <button
                     onClick={() => setMobileCabinaView('MAPA')}
                     style={{
-                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                      border: '1px solid var(--color-tactical-blue)',
-                      color: '#93C5FD',
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid var(--border-color-dark)',
+                      color: 'var(--color-dark)',
                       borderRadius: '8px',
                       padding: '8px 12px',
                       fontSize: '12px',
@@ -896,7 +888,7 @@ export default function App() {
                 {/* Tarjeta de Telemetría e Identidad de la Cabina */}
                 <div style={{
                   backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-subtle)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '10px',
                   padding: '12px 14px',
                   display: 'flex',
@@ -941,7 +933,7 @@ export default function App() {
                       </div>
                       <div style={{
                         height: '6px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        backgroundColor: '#E2E8F0',
                         borderRadius: '3px',
                         marginTop: '5px',
                         overflow: 'hidden',
@@ -970,7 +962,7 @@ export default function App() {
                       </div>
                       <div style={{
                         height: '6px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        backgroundColor: '#E2E8F0',
                         borderRadius: '3px',
                         marginTop: '5px',
                         overflow: 'hidden',
@@ -1080,7 +1072,7 @@ export default function App() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
           backdropFilter: 'blur(8px)',
           zIndex: 9999,
           display: 'flex',
@@ -1089,13 +1081,13 @@ export default function App() {
           padding: '16px',
         }}>
           <div style={{
-            backgroundColor: '#1E293B',
-            border: '2px solid var(--color-tactical-blue)',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid var(--border-color)',
             borderRadius: '12px',
             maxWidth: '480px',
             width: '100%',
             padding: '20px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.8)',
+            boxShadow: 'var(--shadow-modal)',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
@@ -1103,7 +1095,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '24px' }}>📲</span>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#F8FAFC' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
                   Instalar en tu Celular o Tablet
                 </h3>
               </div>
@@ -1149,7 +1141,7 @@ export default function App() {
               borderRadius: '8px',
               padding: '10px 12px',
               fontSize: '12px',
-              color: '#6EE7B7',
+              color: 'var(--badge-controlado-text)',
             }}>
               ✓ Se creará el ícono <strong>🚒 BomberoCabina</strong> en tu celular que abrirá en <strong>pantalla completa (sin barra de direcciones de Chrome)</strong>, con soporte offline y Web Worker AI.
             </div>
