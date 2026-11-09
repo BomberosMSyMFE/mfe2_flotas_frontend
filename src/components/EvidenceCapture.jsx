@@ -198,11 +198,32 @@ export default function EvidenceCapture({
   const [lastSubmission, setLastSubmission] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const [microfonoError, setMicrofonoError] = useState(null);
+  const [fotoDataUrl, setFotoDataUrl] = useState(null);
 
+  const fileInputRef = useRef(null);
   const workerRef = useRef(null);
   const recognitionRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFotoDataUrl(event.target.result);
+        setTipoEvidencia('FOTOGRAFIA_ESCENA');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setFotoDataUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Suscribirse a syncManager para actualizar reactivamente el estado de la evidencia cuando se sincroniza automáticamente
   useEffect(() => {
@@ -513,7 +534,7 @@ export default function EvidenceCapture({
       tipoEvidencia,
       transcripcionLocal: textoReporte,
       analisisIA: currentAi,
-      urlFotografia: 'https://storage.bomberos.gob.bo/evidencias/foto-siniestro-b04.jpg',
+      urlFotografia: fotoDataUrl || 'https://storage.bomberos.gob.bo/evidencias/foto-siniestro-b04.jpg',
       coordenadasCaptura: {
         latitud: -17.7833,
         longitud: -63.1821,
@@ -642,6 +663,114 @@ export default function EvidenceCapture({
                 {tipo.label}
               </button>
             ))}
+          </div>
+
+          {/* Selector de Foto / Cámara en Escena */}
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                CAPTURA DE FOTOGRAFÍA / EVIDENCIA VISUAL
+              </span>
+              <button
+                type="button"
+                className="btn-tactical"
+                style={{
+                  background: '#0284C7',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  border: 'none'
+                }}
+                onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              >
+                📸 {fotoDataUrl ? 'CAMBIAR FOTOGRAFÍA' : 'TOMAR FOTO / SUBIR ARCHIVO'}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={handlePhotoCapture}
+              />
+            </div>
+
+            {fotoDataUrl ? (
+              <div style={{
+                position: 'relative',
+                marginTop: '8px',
+                border: '2px solid var(--border-color)',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                maxWidth: '340px',
+                background: '#0F172A',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}>
+                <img
+                  src={fotoDataUrl}
+                  alt="Evidencia fotográfica capturada en escena"
+                  style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }}
+                />
+                <div style={{ position: 'absolute', top: '6px', right: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.95)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                    title="Eliminar fotografía"
+                  >
+                    ✕ Quitar
+                  </button>
+                </div>
+                <div style={{
+                  padding: '6px 10px',
+                  background: 'rgba(15, 23, 42, 0.85)',
+                  color: '#F8FAFC',
+                  fontSize: '10px',
+                  fontFamily: 'monospace'
+                }}>
+                  📸 FOTO ADJUNTA &bull; LISTA PARA TRANSMISIÓN AL SERVIDOR
+                </div>
+              </div>
+            ) : (
+              tipoEvidencia === 'FOTOGRAFIA_ESCENA' && (
+                <div
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  style={{
+                    marginTop: '8px',
+                    border: '2px dashed #0284C7',
+                    borderRadius: '8px',
+                    padding: '20px 16px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: 'var(--bg-app)',
+                    color: 'var(--text-muted)'
+                  }}
+                >
+                  <div style={{ fontSize: '28px', marginBottom: '6px' }}>📷</div>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                    Toca aquí para activar la cámara o seleccionar una imagen
+                  </div>
+                  <div style={{ fontSize: '10px', marginTop: '4px' }}>
+                    Soporta captura directa de cámara móvil y archivos JPG / PNG
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </div>
 
