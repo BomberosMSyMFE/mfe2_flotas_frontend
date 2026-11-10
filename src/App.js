@@ -479,7 +479,8 @@ export default function App() {
       incidenteActivo.tipoFuego,
       incidenteActivo.latitud,
       incidenteActivo.longitud,
-      incidenteActivo.litrosMinimos || 5000
+      incidenteActivo.litrosMinimos || 5000,
+      camionId || camionSeleccionado?.id
     );
     await cargarDatos(true);
     return data;

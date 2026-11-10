@@ -77,18 +77,22 @@ export async function registrarTelemetria(camionId, latitud, longitud, litrosAgu
   }
 }
 
-export async function reservarCamionSaga(incidenteId, tipoFuego, latitud, longitud, litrosMinimos = 1000) {
+export async function reservarCamionSaga(incidenteId, tipoFuego, latitud, longitud, litrosMinimos = 1000, camionId = null) {
   const baseUrl = getFlotasApiBase();
+  const payload = {
+    incidenteId,
+    tipoFuego,
+    latitud,
+    longitud,
+    litrosMinimos
+  };
+  if (camionId) {
+    payload.camionId = camionId;
+  }
   const res = await fetch(`${baseUrl}/reservar-camion`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      incidenteId,
-      tipoFuego,
-      latitud,
-      longitud,
-      litrosMinimos
-    })
+    body: JSON.stringify(payload)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

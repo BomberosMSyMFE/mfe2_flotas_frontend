@@ -35,6 +35,13 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
       colorClass: 'btn-tactical-cyan',
       icon: '💧',
     },
+    {
+      id: 'DISPONIBLE',
+      label: '🏁 FUEGO EXTINGUIDO / LIBERAR',
+      sublabel: 'Misión concluida • Unidad 100% disponible para nuevo incendio',
+      colorClass: 'btn-tactical-green',
+      icon: '✅',
+    },
   ];
 
   const handleStateClick = async (state) => {
@@ -45,6 +52,24 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
     if (isOnline) {
       try {
         const baseUrl = getFlotasApiBase();
+
+        // Si se concluye la misión, invocar liberación en Spring Boot para limpiar bloqueo SAGA e incidente
+        if (state.id === 'DISPONIBLE') {
+          try {
+            await fetch(`${baseUrl}/liberar-camion`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                incidenteId: 'INC-FINALIZADO',
+                camionId: camionId,
+                motivoCompensacion: 'Misión concluida: Fuego extinguido y unidad liberada para nuevo despacho',
+              }),
+            });
+          } catch (libErr) {
+            console.warn('[TacticalActions] Fallback liberación SAGA:', libErr);
+          }
+        }
+
         const resp = await fetch(`${baseUrl}/telemetria`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -54,16 +79,17 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
             longitud: -63.1821,
             velocidadKmH: state.id === 'EN_TRANSITO' ? 52.0 : 0.0,
             rumboGrados: 180.0,
-            litrosAguaActual: state.id === 'REABASTECIMIENTO' ? 4000 : 2800,
+            litrosAguaActual: state.id === 'REABASTECIMIENTO' ? 4000 : (state.id === 'DISPONIBLE' ? 5000 : 2800),
             combustiblePorcentaje: 88,
-            estadoOperativo: state.id === 'EN_TRANSITO' ? 'EN_TRANSITO' : 'EN_ESCENA',
+            estadoOperativo: state.id === 'EN_TRANSITO' ? 'EN_TRANSITO' : (state.id === 'DISPONIBLE' ? 'DISPONIBLE' : 'EN_ESCENA'),
           }),
         });
 
         if (resp.ok) {
-          setFeedbackMsg(
-            `[${timestamp}] ✓ Enlace en vivo: Telemetría de ${camionId} enviada a Spring Boot (8080) • PostgreSQL 'unidades_flota' (estado: ${state.id}) • Central de Despacho (:3002) actualizada.`
-          );
+          const mensajeTexto = state.id === 'DISPONIBLE'
+            ? `[${timestamp}] ✓ Misión concluida: Camión ${camionId} liberado en base de datos. Listo para atender nuevos incendios.`
+            : `[${timestamp}] ✓ Enlace en vivo: Telemetría de ${camionId} enviada a Spring Boot (8080) • PostgreSQL 'unidades_flota' (estado: ${state.id}) • Central de Despacho (:3002) actualizada.`;
+          setFeedbackMsg(mensajeTexto);
         } else {
           setFeedbackMsg(`[${timestamp}] ⚠️ Servidor respondió con código ${resp.status}.`);
         }

@@ -601,6 +601,31 @@ export default function TacticalHud({
             >
               ↩️ LIBERAR / ROLLBACK
             </button>
+
+            {/* BOTÓN CONCLUIR MISIÓN / FUEGO EXTINGUIDO */}
+            <button
+              disabled={cargandoAccion}
+              onClick={() =>
+                ejecutarAccionSegura(
+                  () => onCompensarSaga && onCompensarSaga(camionActivoId),
+                  `🏁 Misión Concluida: Camión ${camionActivoId} liberado (Estado: DISPONIBLE para nuevos siniestros).`
+                )
+              }
+              className="btn-fire-outline"
+              style={{
+                gridColumn: '1 / -1',
+                padding: '8px 10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textAlign: 'center',
+                borderColor: '#10B981',
+                color: '#065F46',
+                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+              }}
+              title="Libera la unidad una vez culminada la emergencia, retornándola a estado DISPONIBLE para futuros despachos."
+            >
+              🏁 CONCLUIR MISIÓN / FUEGO EXTINGUIDO
+            </button>
           </div>
         </div>
 
