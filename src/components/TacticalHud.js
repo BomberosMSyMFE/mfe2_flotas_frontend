@@ -6,6 +6,8 @@ export default function TacticalHud({
   camionSeleccionado = null,
   onSeleccionarCamion = null,
   incidenteActivo = null,
+  incidentesDisponibles = [],
+  onSeleccionarIncidente = null,
   rutaInfo = null,
   onActualizarFlotas = null,
   isRefreshing = false,
@@ -105,12 +107,12 @@ export default function TacticalHud({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           unidadId: camionActivoId,
-          incidenteId: 'INC-2026-SCZ-' + Math.floor(100 + Math.random() * 900),
-          tipoIncidente: 'INCENDIO ESTRUCTURAL',
-          ubicacion: 'Av. Banzer y 4to Anillo (Santa Cruz)',
-          latitud: -17.7650,
-          longitud: -63.1750,
-          prioridad: 'CODIGO_ROJO'
+          incidenteId: incidenteActivo?.incidenteId || ('INC-2026-SCZ-' + Math.floor(100 + Math.random() * 900)),
+          tipoIncidente: incidenteActivo?.tipoFuego || 'INCENDIO INDUSTRIAL',
+          ubicacion: incidenteActivo?.ubicacion || 'Santa Cruz de la Sierra',
+          latitud: incidenteActivo?.latitud || -17.7833,
+          longitud: incidenteActivo?.longitud || -63.1821,
+          prioridad: incidenteActivo?.prioridad || 'CODIGO_ROJO'
         })
       });
       const data = await res.json();
@@ -373,6 +375,88 @@ export default function TacticalHud({
                 <p style={{ fontWeight: 600 }} className="font-mono">
                   {camionActivo.presionBombaBares || 8.0} Bares
                 </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 1.5. SELECCIÓN DE INCIDENTE ACTIVO EN SANTA CRUZ */}
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            boxShadow: 'var(--shadow-card)',
+            borderRadius: 'var(--radius-card)',
+            padding: '14px',
+            border: '1px solid var(--border-color)',
+            borderLeft: '4px solid var(--color-primary)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+              🔥 INCIDENTE TÁCTICO EN GESTIÓN:
+            </span>
+            <span className="badge-fire badge-fire-critical">
+              {incidenteActivo?.prioridad || 'CODIGO_ROJO'}
+            </span>
+          </div>
+
+          <p style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>
+            Selecciona el siniestro para trazar ruta vial PostGIS o reservar unidad vía SAGA.
+          </p>
+
+          <select
+            value={incidenteActivo?.incidenteId || ''}
+            onChange={(e) => {
+              const incId = e.target.value;
+              if (onSeleccionarIncidente) onSeleccionarIncidente(incId);
+            }}
+            style={{
+              width: '100%',
+              backgroundColor: '#FFFFFF',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-input)',
+              padding: '8px 12px',
+              fontSize: '12px',
+              marginTop: '8px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            {incidentesDisponibles.map((inc) => (
+              <option key={inc.incidenteId} value={inc.incidenteId}>
+                🔥 {inc.incidenteId} &bull; {inc.titulo || inc.tipoFuego}
+              </option>
+            ))}
+          </select>
+
+          {incidenteActivo && (
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '8px 10px',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '11px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Ubicación:</span>
+                <strong style={{ textAlign: 'right' }}>{incidenteActivo.ubicacion}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Tipo de Fuego:</span>
+                <span className="badge badge-emergency" style={{ fontSize: '9px', padding: '1px 4px' }}>
+                  {incidenteActivo.tipoFuego}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Agua Mínima:</span>
+                <strong className="font-mono">{incidenteActivo.litrosMinimos || 5000} L</strong>
               </div>
             </div>
           )}

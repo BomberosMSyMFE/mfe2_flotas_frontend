@@ -96,19 +96,26 @@ const crearIconoHidrante = () => {
   });
 };
 
-const crearIconoFuego = () => {
+const crearIconoFuego = (esActivo = true, tipoFuego = 'INDUSTRIAL') => {
+  const colorFuego = esActivo ? '#EF4444' : '#F59E0B';
+  const strokeFuego = esActivo ? '#991B1B' : '#B45309';
+  const tamano = esActivo ? 42 : 32;
+  const shadow = esActivo 
+    ? 'filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.85));'
+    : 'filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6)); opacity: 0.88;';
+
   const svgFuego = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="#EF4444" stroke="#991B1B" stroke-width="1.5">
+    <svg width="${Math.round(tamano * 0.65)}" height="${Math.round(tamano * 0.65)}" viewBox="0 0 24 24" fill="${colorFuego}" stroke="${strokeFuego}" stroke-width="1.6">
       <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
     </svg>
   `;
 
   return L.divIcon({
-    className: 'custom-marker-pin halo-fuego',
-    html: `<div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${svgFuego}</div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -20]
+    className: `custom-marker-pin ${esActivo ? 'halo-fuego' : 'halo-fuego-secundario'}`,
+    html: `<div style="width: ${tamano}px; height: ${tamano}px; display: flex; align-items: center; justify-content: center; ${shadow}">${svgFuego}</div>`,
+    iconSize: [tamano, tamano],
+    iconAnchor: [tamano / 2, tamano / 2],
+    popupAnchor: [0, -tamano / 2]
   });
 };
 
@@ -116,10 +123,12 @@ export default function VisorCartografico({
   unidades = [],
   hidrantes = [],
   incidenteActivo = null,
+  incidentes = [],
   rutaCalculada = null,
   camionSeleccionado = null,
   hotspots = [],
   onCamionClick = null,
+  onIncidenteClick = null,
   onTrazarRuta = null
 }) {
   const [mapCenter, setMapCenter] = useState([-17.7833, -63.1821]);
@@ -297,24 +306,89 @@ export default function VisorCartografico({
           </Marker>
         ))}
 
-        {/* 3. Incidente Activo en Pantalla (Foco de Fuego) */}
-        {incidenteActivo && (
-          <Marker
-            position={[incidenteActivo.latitud, incidenteActivo.longitud]}
-            icon={crearIconoFuego()}
-          >
-            <Popup>
-              <div style={{ fontSize: '13px' }}>
-                <span className="badge badge-emergency">SINIESTRO ACTIVO</span>
-                <h4 style={{ margin: '6px 0 2px 0', color: 'var(--color-emergency)' }}>{incidenteActivo.tipoFuego || 'FUEGO INDUSTRIAL'}</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{incidenteActivo.incidenteId}</p>
-                <p style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-dim)' }}>
-                  Coord: <span className="font-mono">{incidenteActivo.latitud.toFixed(4)}, {incidenteActivo.longitud.toFixed(4)}</span>
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        )}
+        {/* 3. Incidentes Activos en Santa Cruz (Focos de Fuego) */}
+        {(() => {
+          const listaIncidentes = (incidentes && incidentes.length > 0)
+            ? incidentes
+            : (incidenteActivo ? [incidenteActivo] : []);
+
+          return listaIncidentes.map((inc) => {
+            const esActivo = inc.incidenteId === incidenteActivo?.incidenteId;
+            return (
+              <Marker
+                key={inc.incidenteId}
+                position={[inc.latitud, inc.longitud]}
+                icon={crearIconoFuego(esActivo, inc.tipoFuego)}
+                eventHandlers={{
+                  click: () => {
+                    if (onIncidenteClick) onIncidenteClick(inc);
+                  }
+                }}
+              >
+                <Popup>
+                  <div style={{ fontSize: '13px', minWidth: '190px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <span className={`badge ${esActivo ? 'badge-emergency' : 'badge-amber'}`} style={{ fontSize: '10px' }}>
+                        {esActivo ? '🔥 SINIESTRO OBJETIVO' : '⚠️ SINIESTRO ACTIVO'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="font-mono">
+                        {inc.incidenteId}
+                      </span>
+                    </div>
+
+                    <h4 style={{ margin: '6px 0 2px 0', color: esActivo ? 'var(--color-emergency)' : '#D97706', fontSize: '13px' }}>
+                      {inc.titulo || inc.tipoFuego || 'SINIESTRO'}
+                    </h4>
+
+                    {inc.ubicacion && (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '11px', margin: '3px 0' }}>
+                        📍 {inc.ubicacion}
+                      </p>
+                    )}
+
+                    {inc.descripcion && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: '10px', margin: '2px 0', fontStyle: 'italic' }}>
+                        {inc.descripcion}
+                      </p>
+                    )}
+
+                    <div style={{ marginTop: '6px', padding: '6px', backgroundColor: '#F8FAFC', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Agua mín:</span>
+                        <strong className="font-mono">{inc.litrosMinimos || 5000} L</strong>
+                      </div>
+                      {inc.camionSugeridoId && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Unidad ideal:</span>
+                          <span className="badge badge-cyan" style={{ fontSize: '9px', padding: '0 4px' }}>
+                            🚒 {inc.camionSugeridoId}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {!esActivo && onIncidenteClick && (
+                      <button
+                        onClick={() => onIncidenteClick(inc)}
+                        className="btn-fire-primary"
+                        style={{
+                          marginTop: '8px',
+                          width: '100%',
+                          padding: '6px 8px',
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🧭 ASIGNAR ESTE INCIDENTE A LA RUTA
+                      </button>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          });
+        })()}
 
         {/* 4. Trazo de Ruta Óptima Real sobre Calles (CU-04 PostGIS + Red Urbana) */}
         {/* Trayecto ya recorrido: se desmarca con un trazo punteado gris tenue */}

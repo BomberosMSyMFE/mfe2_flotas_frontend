@@ -16,6 +16,7 @@ import { fetchHotspotsDemo, fetchHidrantesMcp } from './services/mcpApi';
 import { syncManager } from './services/syncManager';
 import { getAllOutboxEvidences } from './services/indexedDbOutbox';
 import { subscribeToForegroundMessages } from './services/firebaseMessaging';
+import { EVENTOS_BUS, suscribirEvento } from './services/eventBus';
 
 // Perfiles de cabina pre-configurados para los camiones de Santa Cruz
 const PERFILES_CABINA = {
@@ -25,6 +26,70 @@ const PERFILES_CABINA = {
   'B-08': { camionId: 'B-08', matricula: 'TNTE-4022', nombre: 'Tnte. Carlos Rojas (Cisterna Pesada)', estacion: 'Parque Industrial' },
   'B-11': { camionId: 'B-11', matricula: 'BOM-8831', nombre: 'Bmb. Rodrigo Vargas (Rescate Liviano)', estacion: 'Plan 3000' },
 };
+
+// Catálogo multizona de incidentes tácticos activos en Santa Cruz de la Sierra
+export const INCIDENTES_SANTA_CRUZ = [
+  {
+    incidenteId: 'INC-2026-SCZ-101',
+    titulo: 'Incendio Industrial (Parque Industrial)',
+    tipoFuego: 'INDUSTRIAL',
+    ubicacion: 'Parque Industrial PI-27, 4to Anillo',
+    latitud: -17.7833,
+    longitud: -63.1821,
+    litrosMinimos: 8000,
+    prioridad: 'CODIGO_ROJO',
+    camionSugeridoId: 'B-04',
+    descripcion: 'Fuego de gran magnitud en almacén químico y plásticos con riesgo de deflagración.',
+  },
+  {
+    incidenteId: 'INC-2026-SCZ-102',
+    titulo: 'Incendio Estructural (Mercado Mutualista)',
+    tipoFuego: 'ESTRUCTURAL',
+    ubicacion: 'Av. Mutualista y 3er Anillo Interno',
+    latitud: -17.7680,
+    longitud: -63.1650,
+    litrosMinimos: 3000,
+    prioridad: 'CODIGO_ROJO',
+    camionSugeridoId: 'B-01',
+    descripcion: 'Pabellón comercial con humo denso y peligro inminente de propagación.',
+  },
+  {
+    incidenteId: 'INC-2026-SCZ-103',
+    titulo: 'Fuego Forestal e Interfaz (Radial 10)',
+    tipoFuego: 'FORESTAL',
+    ubicacion: 'Radial 10 y 8vo Anillo (Zona Este)',
+    latitud: -17.8150,
+    longitud: -63.1400,
+    litrosMinimos: 10000,
+    prioridad: 'CODIGO_NARANJA',
+    camionSugeridoId: 'B-08',
+    descripcion: 'Quema descontrolada de pastizales avanzando hacia viviendas.',
+  },
+  {
+    incidenteId: 'INC-2026-SCZ-104',
+    titulo: 'Fuga GLP HazMat (Equipetrol)',
+    tipoFuego: 'HAZMAT',
+    ubicacion: 'Av. San Martín y 4to Anillo (Equipetrol)',
+    latitud: -17.7580,
+    longitud: -63.1950,
+    litrosMinimos: 4000,
+    prioridad: 'CODIGO_ROJO',
+    camionSugeridoId: 'B-06',
+    descripcion: 'Fuga de gas licuado en subsuelo de edificio con fuego vivo.',
+  },
+  {
+    incidenteId: 'INC-2026-SCZ-105',
+    titulo: 'Colisión y Rescate (Doble Vía a La Guardia)',
+    tipoFuego: 'RESCATE_VEHICULAR',
+    ubicacion: 'Doble Vía a La Guardia y 6to Anillo',
+    latitud: -17.8300,
+    longitud: -63.2100,
+    litrosMinimos: 1500,
+    prioridad: 'CODIGO_AMARILLO',
+    camionSugeridoId: 'B-11',
+    descripcion: 'Impacto vehicular con personas atrapadas y derrame de combustible.',
+  },
+];
 
 export default function App() {
   // Detección reactiva de móvil (< 960px)
@@ -59,14 +124,9 @@ export default function App() {
   const [evidences, setEvidences] = useState([]);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // Incidente activo (Parque Industrial Santa Cruz)
-  const [incidenteActivo, setIncidenteActivo] = useState({
-    incidenteId: 'INC-2026-SCZ-101',
-    tipoFuego: 'INDUSTRIAL',
-    latitud: -17.7833,
-    longitud: -63.1821,
-    litrosMinimos: 8000,
-  });
+  // Catálogo de incidentes tácticos activos y siniestro en foco
+  const [incidentesLista, setIncidentesLista] = useState(INCIDENTES_SANTA_CRUZ);
+  const [incidenteActivo, setIncidenteActivo] = useState(INCIDENTES_SANTA_CRUZ[0]);
 
   // Listener para redimensionamiento de pantalla (Móvil vs Escritorio)
   useEffect(() => {
@@ -206,9 +266,10 @@ export default function App() {
   }, [cargarDatos]);
 
   // Calcular ruta óptima vial hacia el incidente
-  const handleCalcularRuta = useCallback(async (camionId) => {
+  const handleCalcularRuta = useCallback(async (camionId, customIncidente = null) => {
     const camion = unidades.find(u => u.id === camionId) || camionSeleccionado || unidades[0];
-    if (!camion || !incidenteActivo) return;
+    const targetIncidente = customIncidente || incidenteActivo;
+    if (!camion || !targetIncidente) return;
 
     setCamionSeleccionado(camion);
     setTelemetryStep(0);
@@ -216,8 +277,8 @@ export default function App() {
     const ruta = await fetchRutaOptima(
       camion.latitud,
       camion.longitud,
-      incidenteActivo.latitud,
-      incidenteActivo.longitud
+      targetIncidente.latitud,
+      targetIncidente.longitud
     );
 
     if (ruta) {
@@ -234,50 +295,132 @@ export default function App() {
     }
   }, [camionSeleccionado, handleCalcularRuta]);
 
-  // Listener de Notificaciones Push de Despacho Táctico (FCM)
+  // Manejar cambio de perfil/unidad desde el selector del operador o cabina
+  const handleCambiarUnidad = (id) => {
+    const encontrado = unidades.find(u => u.id === id);
+    if (encontrado) {
+      setCamionSeleccionado(encontrado);
+      // Asociar con el incidente sugerido para esta unidad si existe en el catálogo
+      const incSugerido = incidentesLista.find(inc => inc.camionSugeridoId === id);
+      if (incSugerido) {
+        setIncidenteActivo(incSugerido);
+        handleCalcularRuta(id, incSugerido);
+      } else {
+        handleCalcularRuta(id, incidenteActivo);
+      }
+    }
+  };
+
+  // Manejar cambio manual de incidente táctico
+  const handleCambiarIncidente = (incidenteId) => {
+    const encontrado = incidentesLista.find(inc => inc.incidenteId === incidenteId);
+    if (encontrado) {
+      setIncidenteActivo(encontrado);
+      // Si el incidente tiene una unidad idónea asignada, cambiar automáticamente a ella
+      if (encontrado.camionSugeridoId) {
+        const unidadSugerida = unidades.find(u => u.id === encontrado.camionSugeridoId);
+        if (unidadSugerida) {
+          setCamionSeleccionado(unidadSugerida);
+          handleCalcularRuta(unidadSugerida.id, encontrado);
+          return;
+        }
+      }
+      handleCalcularRuta(camionSeleccionado?.id, encontrado);
+    }
+  };
+
+  // 1. Listener de Event Bus Global de Sala de Crisis (Nataly / AppShell Host)
   useEffect(() => {
-    const unsubscribeFCM = subscribeToForegroundMessages((payload) => {
-      console.log('[App] Despacho recibido en Foreground:', payload);
-      const data = payload.data || {};
-      if (data.latitud && data.longitud) {
+    const desuscribir = suscribirEvento(EVENTOS_BUS.INCIDENTE_SELECCIONADO, (detalle) => {
+      if (detalle && (detalle.lat || detalle.latitud) && (detalle.lon || detalle.longitud)) {
+        console.log('[MFE-02] Incidente recibido desde Sala de Crisis (Nataly):', detalle);
+        const lat = parseFloat(detalle.lat || detalle.latitud);
+        const lon = parseFloat(detalle.lon || detalle.longitud);
+        const nuevoInc = {
+          incidenteId: detalle.incidenteId || `INC-SALA-${Date.now().toString().slice(-4)}`,
+          titulo: detalle.titulo || `Emergencia ${detalle.tipoFuego || 'Despachada'}`,
+          tipoFuego: detalle.tipoFuego || 'ESTRUCTURAL',
+          ubicacion: detalle.ubicacion || 'Santa Cruz de la Sierra',
+          latitud: lat,
+          longitud: lon,
+          litrosMinimos: detalle.litrosMinimos || 5000,
+          prioridad: detalle.prioridad || 'CODIGO_ROJO',
+          camionSugeridoId: detalle.camionId || null,
+        };
+
+        setIncidentesLista(prev => {
+          const index = prev.findIndex(i => i.incidenteId === nuevoInc.incidenteId);
+          if (index >= 0) {
+            const copia = [...prev];
+            copia[index] = nuevoInc;
+            return copia;
+          }
+          return [nuevoInc, ...prev];
+        });
+        setIncidenteActivo(nuevoInc);
+        if (detalle.camionId) {
+          const camion = unidades.find(u => u.id === detalle.camionId);
+          if (camion) setCamionSeleccionado(camion);
+        }
+        handleCalcularRuta(detalle.camionId || camionSeleccionado?.id, nuevoInc);
+      }
+    });
+    return desuscribir;
+  }, [unidades, camionSeleccionado, handleCalcularRuta]);
+
+  // 2. Listener de Notificaciones Push de Despacho Táctico (FCM y Service Worker)
+  useEffect(() => {
+    const procesarIncidentePush = (data) => {
+      if (data && data.latitud && data.longitud) {
         const destLat = parseFloat(data.latitud);
         const destLon = parseFloat(data.longitud);
-        setIncidenteActivo({
-          incidenteId: data.incidenteId || 'INC-DESPACHO-TACTICO',
-          tipoFuego: data.tipoIncidente || 'INCENDIO',
+        const nuevoInc = {
+          incidenteId: data.incidenteId || `INC-PUSH-${Date.now().toString().slice(-4)}`,
+          titulo: data.titulo || `Despacho Táctico: ${data.tipoIncidente || 'Incendio'}`,
+          tipoFuego: data.tipoIncidente || 'ESTRUCTURAL',
+          ubicacion: data.ubicacion || 'Santa Cruz de la Sierra',
           latitud: destLat,
           longitud: destLon,
           litrosMinimos: 8000,
+          prioridad: data.prioridad || 'CODIGO_ROJO',
+          camionSugeridoId: data.unidadId || null,
+        };
+
+        setIncidentesLista(prev => {
+          const index = prev.findIndex(i => i.incidenteId === nuevoInc.incidenteId);
+          if (index >= 0) {
+            const copia = [...prev];
+            copia[index] = nuevoInc;
+            return copia;
+          }
+          return [nuevoInc, ...prev];
         });
-        if (camionSeleccionado) {
-          handleCalcularRuta(camionSeleccionado.id);
+        setIncidenteActivo(nuevoInc);
+
+        if (data.unidadId) {
+          const u = unidades.find(x => x.id === data.unidadId);
+          if (u) setCamionSeleccionado(u);
         }
+        handleCalcularRuta(data.unidadId || camionSeleccionado?.id, nuevoInc);
+
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           navigator.vibrate([500, 250, 500, 250, 1000]);
         }
       }
-      console.log('🚨 Alerta de despacho procesada en Foreground:', payload.notification?.title);
+    };
+
+    const unsubscribeFCM = subscribeToForegroundMessages((payload) => {
+      console.log('[App] Despacho recibido en Foreground:', payload);
+      procesarIncidentePush(payload.data || {});
     });
 
     const handleSwMessage = (e) => {
       if (e.data && e.data.type === 'PUSH_DESPACHO_CLICKED') {
-        const data = e.data.data || {};
-        if (data.latitud && data.longitud) {
-          const destLat = parseFloat(data.latitud);
-          const destLon = parseFloat(data.longitud);
-          setIncidenteActivo({
-            incidenteId: data.incidenteId || 'INC-DESPACHO-TACTICO',
-            tipoFuego: data.tipoIncidente || 'INCENDIO',
-            latitud: destLat,
-            longitud: destLon,
-            litrosMinimos: 8000,
-          });
-          if (camionSeleccionado) {
-            handleCalcularRuta(camionSeleccionado.id);
-          }
-        }
+        console.log('[App] Despacho clickeado desde Notificación en Segundo Plano:', e.data);
+        procesarIncidentePush(e.data.data || {});
       }
     };
+
     if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
       navigator.serviceWorker.addEventListener('message', handleSwMessage);
     }
@@ -288,15 +431,7 @@ export default function App() {
         navigator.serviceWorker.removeEventListener('message', handleSwMessage);
       }
     };
-  }, [camionSeleccionado, handleCalcularRuta]);
-
-  // Manejar cambio de perfil/unidad desde el selector del operador o cabina
-  const handleCambiarUnidad = (id) => {
-    const encontrado = unidades.find(u => u.id === id);
-    if (encontrado) {
-      setCamionSeleccionado(encontrado);
-    }
-  };
+  }, [unidades, camionSeleccionado, handleCalcularRuta]);
 
   // Simulación de avance de telemetría a lo largo de las calles
   const handleSimularTelemetria = async (camionId) => {
@@ -339,13 +474,12 @@ export default function App() {
 
   // SAGA Reserva
   const handleReservarSaga = async (camionId) => {
-    const camion = unidades.find(u => u.id === camionId) || camionSeleccionado || unidades[0];
     const data = await reservarCamionSaga(
       incidenteActivo.incidenteId,
       incidenteActivo.tipoFuego,
-      camion ? camion.latitud : incidenteActivo.latitud,
-      camion ? camion.longitud : incidenteActivo.longitud,
-      1000
+      incidenteActivo.latitud,
+      incidenteActivo.longitud,
+      incidenteActivo.litrosMinimos || 5000
     );
     await cargarDatos(true);
     return data;
@@ -726,16 +860,40 @@ export default function App() {
                   flexDirection: 'column',
                   gap: '6px',
                 }}>
-                  {/* Fila 1: Título e Incidente Destino */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  {/* Fila 1: Título e Incidente Destino con Selector Rápido */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '16px' }}>🧭</span>
                       <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        RUTA: {camionSeleccionado?.id || 'B-04'} ➔ {incidenteActivo.incidenteId}
+                        {camionSeleccionado?.id || 'B-04'} ➔
                       </span>
+                      <select
+                        value={incidenteActivo?.incidenteId || ''}
+                        onChange={(e) => handleCambiarIncidente(e.target.value)}
+                        style={{
+                          backgroundColor: '#F1F5F9',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          padding: '2px 6px',
+                          fontSize: isMobile ? '11px' : '12px',
+                          fontWeight: 800,
+                          fontFamily: 'var(--font-mono)',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          maxWidth: isMobile ? '145px' : '230px',
+                        }}
+                        title="Cambiar siniestro de destino para la ruta"
+                      >
+                        {incidentesLista.map(inc => (
+                          <option key={inc.incidenteId} value={inc.incidenteId}>
+                            🔥 {inc.incidenteId} ({inc.tipoFuego})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <span className="badge badge-emergency" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                      INCENDIO INDUSTRIAL
+                      {incidenteActivo?.tipoFuego || 'SINIESTRO'}
                     </span>
                   </div>
 
@@ -837,10 +995,12 @@ export default function App() {
                   unidades={unidades}
                   hidrantes={hidrantes}
                   incidenteActivo={incidenteActivo}
+                  incidentes={incidentesLista}
                   rutaCalculada={rutaCalculada}
                   camionSeleccionado={camionSeleccionado}
                   hotspots={mostrarHotspots ? hotspots : []}
-                  onCamionClick={(camion) => setCamionSeleccionado(camion)}
+                  onCamionClick={(camion) => handleCambiarUnidad(camion.id)}
+                  onIncidenteClick={(inc) => handleCambiarIncidente(inc.incidenteId)}
                   onTrazarRuta={handleCalcularRuta}
                 />
               </div>
@@ -1009,11 +1169,17 @@ export default function App() {
                 unidades={unidades}
                 hidrantes={hidrantes}
                 incidenteActivo={incidenteActivo}
+                incidentes={incidentesLista}
                 rutaCalculada={rutaCalculada}
                 camionSeleccionado={camionSeleccionado}
                 hotspots={mostrarHotspots ? hotspots : []}
                 onCamionClick={(camion) => {
-                  setCamionSeleccionado(camion);
+                  handleCambiarUnidad(camion.id);
+                  setActiveTab('CABINA');
+                  if (isMobile) setMobileCabinaView('MAPA');
+                }}
+                onIncidenteClick={(inc) => {
+                  handleCambiarIncidente(inc.incidenteId);
                   setActiveTab('CABINA');
                   if (isMobile) setMobileCabinaView('MAPA');
                 }}
@@ -1031,8 +1197,10 @@ export default function App() {
               <TacticalHud
                 unidades={unidades}
                 camionSeleccionado={camionSeleccionado}
-                onSeleccionarCamion={(camion) => setCamionSeleccionado(camion)}
+                onSeleccionarCamion={(camion) => handleCambiarUnidad(camion.id)}
                 incidenteActivo={incidenteActivo}
+                incidentesDisponibles={incidentesLista}
+                onSeleccionarIncidente={handleCambiarIncidente}
                 rutaInfo={rutaCalculada}
                 onActualizarFlotas={() => cargarDatos(true)}
                 isRefreshing={isRefreshing}
