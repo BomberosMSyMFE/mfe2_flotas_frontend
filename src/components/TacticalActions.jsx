@@ -55,16 +55,16 @@ export default function TacticalActions({
     setCurrentStatus(state.id);
     const timestamp = new Date().toLocaleTimeString();
 
-    // Determinar coordenadas dinámicas (NUNCA fijar Plaza 24 de Septiembre por defecto)
-    let targetLat = camion?.latitud || -17.7862;
-    let targetLon = camion?.longitud || -63.1812;
+    // Determinar coordenadas dinámicas prioritarias
+    let targetLat = camion?.latitud != null ? camion.latitud : (incidenteActivo?.latitud != null ? parseFloat(incidenteActivo.latitud) : -17.7833);
+    let targetLon = camion?.longitud != null ? camion.longitud : (incidenteActivo?.longitud != null ? parseFloat(incidenteActivo.longitud) : -63.1821);
 
     if (state.id === 'LLEGADA_A_ESCENA' || state.id === 'FUEGO_CONTROLADO') {
-      if (incidenteActivo?.latitud && incidenteActivo?.longitud) {
+      if (incidenteActivo?.latitud != null && incidenteActivo?.longitud != null) {
         targetLat = parseFloat(incidenteActivo.latitud);
         targetLon = parseFloat(incidenteActivo.longitud);
       }
-    } else if (camion?.latitud && camion?.longitud) {
+    } else if (camion?.latitud != null && camion?.longitud != null) {
       targetLat = camion.latitud;
       targetLon = camion.longitud;
     }

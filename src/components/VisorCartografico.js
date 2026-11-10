@@ -259,7 +259,7 @@ export default function VisorCartografico({
           maxZoom={19}
         />
 
-        {/* 1. Capa de Hotspots ML (DBSCAN Clusters Espaciales en Santa Cruz) */}
+        {/* 1. Capa de Hotspots ML (DBSCAN Clusters Espaciales en Santa Cruz - No interactivo para no bloquear clics de incidentes) */}
         {activeHotspots && activeHotspots.map((cluster) => (
           <Circle
             key={`cluster-${cluster.cluster_id}`}
@@ -268,27 +268,12 @@ export default function VisorCartografico({
             pathOptions={{
               color: cluster.clasificacion_riesgo === 'CRITICO' ? '#EF4444' : '#F59E0B',
               fillColor: cluster.clasificacion_riesgo === 'CRITICO' ? '#EF4444' : '#F59E0B',
-              fillOpacity: 0.22,
-              weight: 2,
-              dashArray: '4, 8'
+              fillOpacity: 0.15,
+              weight: 1.5,
+              dashArray: '4, 8',
+              interactive: false
             }}
-          >
-            <Popup>
-              <div style={{ fontSize: '13px', minWidth: '190px' }}>
-                <span className="badge badge-emergency">HOTSPOT DBSCAN #{cluster.cluster_id}</span>
-                <h4 style={{ margin: '6px 0 2px 0', fontSize: '12px', color: '#F9FAFB' }}>
-                  {cluster.nombre_zona || `Sector Municipal #${cluster.cluster_id}`}
-                </h4>
-                <p style={{ marginTop: '4px', fontWeight: 600, color: cluster.clasificacion_riesgo === 'CRITICO' ? '#EF4444' : '#F59E0B' }}>
-                  Riesgo: {cluster.clasificacion_riesgo}
-                </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0' }}>
-                  Incidentes recurrentes: <b>{cluster.cantidad_incidentes}</b> siniestros
-                </p>
-                <p style={{ color: 'var(--text-dim)', fontSize: '10px' }}>Radio de propagación: 1.5 km (Haversine)</p>
-              </div>
-            </Popup>
-          </Circle>
+          />
         ))}
 
         {/* 2. Capa de Hidrantes de la Red PostGIS */}
@@ -340,6 +325,7 @@ export default function VisorCartografico({
                   key={inc.incidenteId}
                   position={[inc.latitud, inc.longitud]}
                   icon={crearIconoFuego(esActivo, inc.tipoFuego, inc.estado)}
+                  zIndexOffset={1000}
                   eventHandlers={{
                     click: () => {
                       if (onIncidenteClick) onIncidenteClick(inc);

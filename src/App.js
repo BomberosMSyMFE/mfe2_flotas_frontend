@@ -358,8 +358,11 @@ export default function App() {
   };
 
   // Manejar cambio manual de incidente táctico
-  const handleCambiarIncidente = (incidenteId) => {
-    const encontrado = incidentesLista.find(inc => inc.incidenteId === incidenteId);
+  const handleCambiarIncidente = (target) => {
+    const id = typeof target === 'string' ? target : target?.incidenteId;
+    const encontrado = (typeof target === 'object' && target?.incidenteId)
+      ? target
+      : incidentesLista.find(inc => inc.incidenteId === id);
     if (encontrado) {
       setIncidenteActivo(encontrado);
       // Si el incidente tiene una unidad idónea asignada, cambiar automáticamente a ella
