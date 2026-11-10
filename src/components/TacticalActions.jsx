@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { getFlotasApiBase } from '../services/flotasApi';
 
-export default function TacticalActions({ camionId = 'B-04', isOnline, onActionRecorded }) {
+export default function TacticalActions({
+  camionId = 'B-04',
+  camion = null,
+  incidenteActivo = null,
+  isOnline,
+  onActionRecorded
+}) {
   const [currentStatus, setCurrentStatus] = useState('EN_SERVICIO');
   const [isUpdating, setIsUpdating] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState(null);
@@ -49,6 +55,20 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
     setCurrentStatus(state.id);
     const timestamp = new Date().toLocaleTimeString();
 
+    // Determinar coordenadas dinámicas (NUNCA fijar Plaza 24 de Septiembre por defecto)
+    let targetLat = camion?.latitud || -17.7862;
+    let targetLon = camion?.longitud || -63.1812;
+
+    if (state.id === 'LLEGADA_A_ESCENA' || state.id === 'FUEGO_CONTROLADO') {
+      if (incidenteActivo?.latitud && incidenteActivo?.longitud) {
+        targetLat = parseFloat(incidenteActivo.latitud);
+        targetLon = parseFloat(incidenteActivo.longitud);
+      }
+    } else if (camion?.latitud && camion?.longitud) {
+      targetLat = camion.latitud;
+      targetLon = camion.longitud;
+    }
+
     if (isOnline) {
       try {
         const baseUrl = getFlotasApiBase();
@@ -60,7 +80,7 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                incidenteId: 'INC-FINALIZADO',
+                incidenteId: incidenteActivo?.incidenteId || 'INC-FINALIZADO',
                 camionId: camionId,
                 motivoCompensacion: 'Misión concluida: Fuego extinguido y unidad liberada para nuevo despacho',
               }),
@@ -75,8 +95,8 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             camionId: camionId,
-            latitud: -17.7833,
-            longitud: -63.1821,
+            latitud: targetLat,
+            longitud: targetLon,
             velocidadKmH: state.id === 'EN_TRANSITO' ? 52.0 : 0.0,
             rumboGrados: 180.0,
             litrosAguaActual: state.id === 'REABASTECIMIENTO' ? 4000 : (state.id === 'DISPONIBLE' ? 5000 : 2800),

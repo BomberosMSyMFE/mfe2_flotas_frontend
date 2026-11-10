@@ -6,6 +6,7 @@ import EvidenceCapture from './components/EvidenceCapture';
 import OutboxVisualizer from './components/OutboxVisualizer';
 import {
   fetchUnidadesActivas,
+  fetchIncidentesActivos,
   fetchRutaOptima,
   registrarTelemetria,
   reservarCamionSaga,
@@ -228,6 +229,8 @@ export default function App() {
     try {
       if (isManual) setIsRefreshing(true);
       const listaUnidades = await fetchUnidadesActivas();
+      const incidentesBackend = await fetchIncidentesActivos();
+
       if (listaUnidades && listaUnidades.length > 0) {
         setUnidades(listaUnidades);
 
@@ -235,6 +238,31 @@ export default function App() {
           if (!prev) return listaUnidades.find(u => u.id === 'B-04') || listaUnidades[0];
           const actualizado = listaUnidades.find(u => u.id === prev.id);
           return actualizado || listaUnidades[0];
+        });
+      }
+
+      // Sincronizar incidentes asignados por Nataly (SAGA MS-01)
+      if (incidentesBackend && incidentesBackend.length > 0) {
+        setIncidentesLista(prev => {
+          const combinados = [...incidentesBackend];
+          prev.forEach(p => {
+            if (!combinados.some(c => c.incidenteId === p.incidenteId)) {
+              combinados.push(p);
+            }
+          });
+          return combinados;
+        });
+
+        // Si la unidad seleccionada tiene un incidente asignado por Nataly, sincronizarlo como activo
+        setIncidenteActivo(prev => {
+          const camionIdActual = camionSeleccionado?.id || 'B-04';
+          const incAsignado = incidentesBackend.find(
+            inc => inc.camionId === camionIdActual || inc.camionSugeridoId === camionIdActual
+          );
+          if (incAsignado) {
+            return incAsignado;
+          }
+          return prev;
         });
       }
 
@@ -254,14 +282,14 @@ export default function App() {
         setIsRefreshing(false);
       }
     }
-  }, []);
+  }, [camionSeleccionado]);
 
-  // Polling periódico cada 15 segundos
+  // Polling periódico táctico cada 5 segundos para reaccionar a SAGA MS-01
   useEffect(() => {
     cargarDatos(false);
     const interval = setInterval(() => {
       cargarDatos(false);
-    }, 15000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [cargarDatos]);
 
@@ -1180,6 +1208,8 @@ export default function App() {
                 {/* Comandos Rápidos de Cabina (Manos con Guantes) */}
                 <TacticalActions
                   camionId={camionSeleccionado?.id || 'B-04'}
+                  camion={camionSeleccionado}
+                  incidenteActivo={incidenteActivo}
                   isOnline={isOnline}
                   onActionRecorded={() => {
                     cargarDatos(true);

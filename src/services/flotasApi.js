@@ -118,3 +118,17 @@ export async function liberarCamionSaga(incidenteId, camionId, motivoCompensacio
   }
   return await res.json();
 }
+
+export async function fetchIncidentesActivos() {
+  try {
+    const baseUrl = getFlotasApiBase();
+    const res = await fetch(`${baseUrl}/incidentes/activos`);
+    if (res.ok) {
+      return await res.json();
+    }
+    return [];
+  } catch (error) {
+    console.warn('[flotasApi] Error obteniendo incidentes activos:', error.message);
+    return [];
+  }
+}
