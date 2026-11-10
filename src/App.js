@@ -241,26 +241,44 @@ export default function App() {
         });
       }
 
-      // Sincronizar incidentes asignados por Nataly (SAGA MS-01)
-      if (incidentesBackend && incidentesBackend.length > 0) {
-        setIncidentesLista(prev => {
-          const combinados = [...incidentesBackend];
-          prev.forEach(p => {
-            if (!combinados.some(c => c.incidenteId === p.incidenteId)) {
-              combinados.push(p);
-            }
-          });
-          return combinados;
+      // Sincronizar incidentes asignados por Nataly (SAGA MS-01) o persistidos en unidades
+      let incidentesReales = incidentesBackend && incidentesBackend.length > 0 ? [...incidentesBackend] : [];
+
+      // Si la lista de backend no los trajo directamente pero hay unidades con incidente asignado
+      if (listaUnidades && listaUnidades.length > 0) {
+        listaUnidades.forEach(u => {
+          if (u.incidenteAsignadoId && !incidentesReales.some(inc => inc.incidenteId === u.incidenteAsignadoId)) {
+            incidentesReales.push({
+              incidenteId: u.incidenteAsignadoId,
+              titulo: `Siniestro Asignado (${u.id})`,
+              tipoFuego: 'ESTRUCTURAL',
+              ubicacion: `${u.estacionOrigen || 'Santa Cruz'} - En Cobertura`,
+              latitud: u.latitud,
+              longitud: u.longitud,
+              litrosMinimos: 3000,
+              prioridad: 'CODIGO_ROJO',
+              camionSugeridoId: u.id,
+              camionId: u.id
+            });
+          }
         });
+      }
+
+      if (incidentesReales.length > 0) {
+        // PRIORIZAR INCIDENTES REALES: Reemplazar los mocks estáticos 101-105
+        setIncidentesLista(incidentesReales);
 
         // Si la unidad seleccionada tiene un incidente asignado por Nataly, sincronizarlo como activo
         setIncidenteActivo(prev => {
           const camionIdActual = camionSeleccionado?.id || 'B-04';
-          const incAsignado = incidentesBackend.find(
-            inc => inc.camionId === camionIdActual || inc.camionSugeridoId === camionIdActual
+          const incAsignado = incidentesReales.find(
+            inc => inc.camionId === camionIdActual || inc.camionSugeridoId === camionIdActual || inc.incidenteId === camionSeleccionado?.incidenteAsignadoId
           );
           if (incAsignado) {
             return incAsignado;
+          }
+          if (!incidentesReales.some(inc => inc.incidenteId === prev?.incidenteId)) {
+            return incidentesReales[0];
           }
           return prev;
         });
@@ -377,13 +395,14 @@ export default function App() {
         };
 
         setIncidentesLista(prev => {
-          const index = prev.findIndex(i => i.incidenteId === nuevoInc.incidenteId);
+          const base = prev.filter(p => !p.incidenteId.startsWith('INC-2026-SCZ-10'));
+          const index = base.findIndex(i => i.incidenteId === nuevoInc.incidenteId);
           if (index >= 0) {
-            const copia = [...prev];
+            const copia = [...base];
             copia[index] = nuevoInc;
             return copia;
           }
-          return [nuevoInc, ...prev];
+          return [nuevoInc, ...base];
         });
         setIncidenteActivo(nuevoInc);
         if (detalle.camionId) {
@@ -415,13 +434,14 @@ export default function App() {
         };
 
         setIncidentesLista(prev => {
-          const index = prev.findIndex(i => i.incidenteId === nuevoInc.incidenteId);
+          const base = prev.filter(p => !p.incidenteId.startsWith('INC-2026-SCZ-10'));
+          const index = base.findIndex(i => i.incidenteId === nuevoInc.incidenteId);
           if (index >= 0) {
-            const copia = [...prev];
+            const copia = [...base];
             copia[index] = nuevoInc;
             return copia;
           }
-          return [nuevoInc, ...prev];
+          return [nuevoInc, ...base];
         });
         setIncidenteActivo(nuevoInc);
 
