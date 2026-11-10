@@ -607,7 +607,28 @@ export default function TacticalHud({
               disabled={cargandoAccion}
               onClick={() =>
                 ejecutarAccionSegura(
-                  () => onCompensarSaga && onCompensarSaga(camionActivoId),
+                  async () => {
+                    if (onCompensarSaga) await onCompensarSaga(camionActivoId);
+                    try {
+                      window.dispatchEvent(
+                        new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', {
+                          detail: {
+                            incidenteId: incidenteActivo?.incidenteId,
+                            nuevoEstado: 'EXTINGUIDO',
+                            camionId: camionActivoId,
+                            timestamp: new Date().toLocaleTimeString()
+                          },
+                          bubbles: true
+                        })
+                      );
+                      window.dispatchEvent(
+                        new CustomEvent('BOMBEROS:UNIDAD_LIBERADA', {
+                          detail: { camionId: camionActivoId, nuevoEstado: 'DISPONIBLE' },
+                          bubbles: true
+                        })
+                      );
+                    } catch (e) {}
+                  },
                   `🏁 Misión Concluida: Camión ${camionActivoId} liberado (Estado: DISPONIBLE para nuevos siniestros).`
                 )
               }

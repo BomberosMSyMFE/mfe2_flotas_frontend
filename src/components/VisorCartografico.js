@@ -96,7 +96,25 @@ const crearIconoHidrante = () => {
   });
 };
 
-const crearIconoFuego = (esActivo = true, tipoFuego = 'INDUSTRIAL') => {
+const crearIconoFuego = (esActivo = true, tipoFuego = 'INDUSTRIAL', estado = 'ACTIVO') => {
+  const isControlado = estado === 'CONTROLADO';
+
+  if (isControlado) {
+    const svgShield = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#10B981" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        <polyline points="9 12 11 14 15 10" stroke="#FFFFFF" stroke-width="2.5" fill="none"></polyline>
+      </svg>
+    `;
+    return L.divIcon({
+      className: 'custom-marker-pin halo-controlado',
+      html: `<div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.9)); background: rgba(16, 185, 129, 0.15); border-radius: 50%; border: 2px solid #10B981;">${svgShield}</div>`,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+      popupAnchor: [0, -19]
+    });
+  }
+
   const colorFuego = esActivo ? '#EF4444' : '#F59E0B';
   const strokeFuego = esActivo ? '#991B1B' : '#B45309';
   const tamano = esActivo ? 42 : 32;
@@ -312,33 +330,53 @@ export default function VisorCartografico({
             ? incidentes
             : (incidenteActivo ? [incidenteActivo] : []);
 
-          return listaIncidentes.map((inc) => {
-            const esActivo = inc.incidenteId === incidenteActivo?.incidenteId;
-            return (
-              <Marker
-                key={inc.incidenteId}
-                position={[inc.latitud, inc.longitud]}
-                icon={crearIconoFuego(esActivo, inc.tipoFuego)}
-                eventHandlers={{
-                  click: () => {
-                    if (onIncidenteClick) onIncidenteClick(inc);
-                  }
-                }}
-              >
-                <Popup>
-                  <div style={{ fontSize: '13px', minWidth: '190px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                      <span className={`badge ${esActivo ? 'badge-emergency' : 'badge-amber'}`} style={{ fontSize: '10px' }}>
-                        {esActivo ? '🔥 SINIESTRO OBJETIVO' : '⚠️ SINIESTRO ACTIVO'}
-                      </span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="font-mono">
-                        {inc.incidenteId}
-                      </span>
-                    </div>
+          return listaIncidentes
+            .filter((inc) => inc.estado !== 'EXTINGUIDO' && inc.estado !== 'LIQUIDADO')
+            .map((inc) => {
+              const esActivo = inc.incidenteId === incidenteActivo?.incidenteId;
+              const isControlado = inc.estado === 'CONTROLADO';
+              return (
+                <Marker
+                  key={inc.incidenteId}
+                  position={[inc.latitud, inc.longitud]}
+                  icon={crearIconoFuego(esActivo, inc.tipoFuego, inc.estado)}
+                  eventHandlers={{
+                    click: () => {
+                      if (onIncidenteClick) onIncidenteClick(inc);
+                    }
+                  }}
+                >
+                  <Popup>
+                    <div style={{ fontSize: '13px', minWidth: '190px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                        <span
+                          className={`badge ${
+                            isControlado
+                              ? 'badge-success'
+                              : esActivo
+                              ? 'badge-emergency'
+                              : 'badge-amber'
+                          }`}
+                          style={{
+                            fontSize: '10px',
+                            backgroundColor: isControlado ? '#10B981' : undefined,
+                            color: isControlado ? '#FFFFFF' : undefined,
+                          }}
+                        >
+                          {isControlado
+                            ? '🛡️ FUEGO CONTROLADO'
+                            : esActivo
+                            ? '🔥 SINIESTRO OBJETIVO'
+                            : '⚠️ SINIESTRO ACTIVO'}
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="font-mono">
+                          {inc.incidenteId}
+                        </span>
+                      </div>
 
-                    <h4 style={{ margin: '6px 0 2px 0', color: esActivo ? 'var(--color-emergency)' : '#D97706', fontSize: '13px' }}>
-                      {inc.titulo || inc.tipoFuego || 'SINIESTRO'}
-                    </h4>
+                      <h4 style={{ margin: '6px 0 2px 0', color: isControlado ? '#059669' : (esActivo ? 'var(--color-emergency)' : '#D97706'), fontSize: '13px' }}>
+                        {inc.titulo || inc.tipoFuego || 'SINIESTRO'}
+                      </h4>
 
                     {inc.ubicacion && (
                       <p style={{ color: 'var(--text-secondary)', fontSize: '11px', margin: '3px 0' }}>

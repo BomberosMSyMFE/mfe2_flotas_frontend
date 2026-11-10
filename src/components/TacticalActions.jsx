@@ -100,13 +100,42 @@ export default function TacticalActions({ camionId = 'B-04', isOnline, onActionR
       setFeedbackMsg(`[${timestamp}] 📡 MODO OFFLINE (Sin señal): Estado ${state.id} resguardado en cabina.`);
     }
 
-    // Emitir evento por bus para sincronía entre componentes
+    // Emitir eventos por bus para sincronía entre Microfrontends (Host Nataly, Mapa y Cabina)
     try {
       window.dispatchEvent(
         new CustomEvent('BOMBEROS:ESTADO_CAMION_CAMBIADO', {
           detail: { camionId, nuevoEstado: state.id, timestamp },
+          bubbles: true
         })
       );
+
+      if (state.id === 'FUEGO_CONTROLADO') {
+        window.dispatchEvent(
+          new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', {
+            detail: { nuevoEstado: 'CONTROLADO', camionId, timestamp },
+            bubbles: true
+          })
+        );
+        window.dispatchEvent(
+          new CustomEvent('BOMBEROS:INCIDENTE_CONTROLADO', {
+            detail: { estado: 'CONTROLADO', camionId, timestamp },
+            bubbles: true
+          })
+        );
+      } else if (state.id === 'DISPONIBLE') {
+        window.dispatchEvent(
+          new CustomEvent('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', {
+            detail: { nuevoEstado: 'EXTINGUIDO', camionId, timestamp },
+            bubbles: true
+          })
+        );
+        window.dispatchEvent(
+          new CustomEvent('BOMBEROS:UNIDAD_LIBERADA', {
+            detail: { camionId, nuevoEstado: 'DISPONIBLE', timestamp },
+            bubbles: true
+          })
+        );
+      }
     } catch (e) {
       // Ignorar si el entorno no soporta CustomEvent
     }

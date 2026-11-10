@@ -433,6 +433,44 @@ export default function App() {
     };
   }, [unidades, camionSeleccionado, handleCalcularRuta]);
 
+  // 3. Listener de Cambios de Estado del Incidente (FUEGO CONTROLADO / EXTINGUIDO)
+  useEffect(() => {
+    const handleEstadoIncidente = (e) => {
+      const detalle = e.detail || {};
+      const { incidenteId, nuevoEstado } = detalle;
+      const idObjetivo = incidenteId || incidenteActivo?.incidenteId;
+      if (!nuevoEstado) return;
+
+      console.log(`[App] Evento de Incidente: ${idObjetivo} -> ${nuevoEstado}`);
+
+      setIncidentesLista(prev => prev.map(inc => {
+        if (!idObjetivo || inc.incidenteId === idObjetivo) {
+          return { ...inc, estado: nuevoEstado };
+        }
+        return inc;
+      }));
+
+      setIncidenteActivo(prev => {
+        if (!prev || !idObjetivo || prev.incidenteId === idObjetivo) {
+          return prev ? { ...prev, estado: nuevoEstado } : prev;
+        }
+        return prev;
+      });
+
+      // Si el fuego fue extinguido / liquidado, limpiar la ruta activa y deseleccionar siniestro
+      if (nuevoEstado === 'EXTINGUIDO' || nuevoEstado === 'LIQUIDADO') {
+        setRutaCalculada(null);
+      }
+    };
+
+    window.addEventListener('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', handleEstadoIncidente);
+    window.addEventListener('BOMBEROS:INCIDENTE_CONTROLADO', handleEstadoIncidente);
+    return () => {
+      window.removeEventListener('BOMBEROS:ESTADO_INCIDENTE_CAMBIADO', handleEstadoIncidente);
+      window.removeEventListener('BOMBEROS:INCIDENTE_CONTROLADO', handleEstadoIncidente);
+    };
+  }, [incidenteActivo]);
+
   // Simulación de avance de telemetría a lo largo de las calles
   const handleSimularTelemetria = async (camionId) => {
     const camion = unidades.find(u => u.id === camionId) || camionSeleccionado || unidades[0];
